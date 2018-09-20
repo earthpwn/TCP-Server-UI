@@ -1,6 +1,8 @@
 ﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -15,33 +17,74 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using System.Windows.Resources;
 using System.Windows.Shapes;
 
 namespace Shiny
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
+    // TODO: Remove highlight effect from button
+    // TODO: Create an alert pop-up when a new message is recieved
+
     public partial class MainWindow : Window
     {
         bool serverRunning = false;
+        DataTable AlertData = new DataTable();
+        static String LogFileName;
 
         public MainWindow()
         {
             InitializeComponent();
+            LogFileName = "log" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".txt";
+            AlertData.Columns.Add("Time", Type.GetType("System.String"));
+            AlertData.Columns.Add("Location", Type.GetType("System.String"));
+            RetrieveAlerts();
+        }
+
+        private void AlertTable_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if(AlertTable.Columns.Count > 0)
+                {
+                    AlertTable.Columns[0].Width = 160;
+                    AlertTable.Columns[1].Width = 120;
+                }
+            }
+            catch(Exception ex)
+            {
+                ConsoleAddItem(ex.Message);
+                LogWorker(ex.Message);
+            }
         }
 
         private void ButtonStartServer_Click(object sender, RoutedEventArgs e)
         {
-            Console.Items.Add("Server is started");
+            ConsoleAddItem("Server is started");
+            LogWorker("Server is started");
             serverRunning = true;
             Task.Factory.StartNew(() => StartServer());
         }
 
         private void ButtonStopServer_Click(object sender, RoutedEventArgs e)
         {
-            Console.Items.Add("Server is stopped");
+            ConsoleAddItem("Server is stopped");
+            LogWorker("Server is stopped");
             serverRunning = false;
+        }
+
+        private void StartnStopButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!serverRunning)
+            {
+                serverRunning = true;
+                Task.Factory.StartNew(() => StartServer());
+                StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/stop.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
+            }
+            else
+            {
+                serverRunning = false;
+                StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/start.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
+            }
         }
 
         private void Console_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -74,6 +117,7 @@ namespace Shiny
 
             sunucu.Start();
             ConsoleAddItem(String.Format(String.Format("Server has started on {0}:{1}", IP_Adresi, Port_No)));
+            LogWorker(String.Format(String.Format("Server has started on {0}:{1}", IP_Adresi, Port_No)));
 
             while (serverRunning)
             {
@@ -90,6 +134,8 @@ namespace Shiny
                 await WaitAsynchronouslyAsync(100);
             }
             sunucu.Stop();
+            ConsoleAddItem("Server is stopped");
+            LogWorker("Server is stopped");
             Thread.CurrentThread.Abort();
         }
 
@@ -99,6 +145,7 @@ namespace Shiny
             TcpClient istemci = sunucu.AcceptTcpClient();
 
             ConsoleAddItem(String.Format("A client connected. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
+            LogWorker(String.Format("A client connected. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
 
             NetworkStream yayin = istemci.GetStream();
 
@@ -115,13 +162,17 @@ namespace Shiny
                     if (gelen_veri.Length > 0)
                     {
                         ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
+                        LogWorker(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
                         if (InsertAlert(gelen_veri))
                         {
                             ConsoleAddItem(String.Format("Alert info has been inserted to DB successfully!"));
+                            LogWorker(String.Format("Alert info has been inserted to DB successfully!"));
+                            RetrieveAlerts();
                         }
                         else
                         {
                             ConsoleAddItem(String.Format("Alert info could NOT be inserted!!!"));
+                            LogWorker(String.Format("Alert info could NOT be inserted!!!"));
                             //handle rest
                         }
                     }
@@ -129,6 +180,7 @@ namespace Shiny
                 catch (System.IO.IOException)
                 {
                     ConsoleAddItem(String.Format("Connection lost. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
+                    LogWorker(String.Format("Connection lost. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
                     break;
                 }
             }
@@ -139,28 +191,97 @@ namespace Shiny
         private bool InsertAlert(String location)
         {
             bool result = false;
-            string connStr = "server=localhost;user=root;database=anan;port=3306;password=anan";
+            string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
             MySqlConnection conn = new MySqlConnection(connStr);
             try
             {
+                //todo: force to use time zone of Turkey. now using local time settings(?)
                 String alertTime = DateTime.Now.ToString();
                 conn.Open();
                 ConsoleAddItem("DB Connection established!");
-                MySqlCommand cmd = new MySqlCommand(String.Format("INSERT INTO test (Time, Location) VALUES ('{0}', '{1}')", alertTime, location), conn);
+                LogWorker("DB Connection established!");
+                MySqlCommand cmd = new MySqlCommand(String.Format("INSERT INTO anan.test (Time, Location) VALUES ('{0}', '{1}')", alertTime, location), conn);
                 cmd.ExecuteNonQuery();
                 ConsoleAddItem("Query was run succesfully!");
+                LogWorker("Query was run succesfully!");
                 result = true;
+            }
+            catch (Exception ex)
+            {
+                
+            }
+            if (conn.State == System.Data.ConnectionState.Open)
+            {
+                try
+                {
+                    conn.Close();
+                    ConsoleAddItem("DB Connection Closed.");
+                    LogWorker("DB Connection Closed.");
+                }
+                catch { }
+            }
+            return result;
+        }
+
+        private void RetrieveAlerts()
+        {
+            ConsoleAddItem("Retrieving alert data from DB.");
+            LogWorker("Retrieving alert data from DB.");
+            this.Dispatcher.Invoke(() => { AlertTable.ItemsSource = null; });
+            AlertData.Rows.Clear();
+            string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                conn.Open();
+                ConsoleAddItem("DB Connection established!");
+                LogWorker("DB Connection established!");
+                MySqlCommand cmd = new MySqlCommand(String.Format("SELECT * FROM anan.test"), conn);
+                ConsoleAddItem("Query is executing...");
+                LogWorker("Query is executing...");
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        AlertData.Rows.Add(new object[] { reader["Time"].ToString(), reader["Location"].ToString() });
+                    }
+                    ConsoleAddItem("Alert records have been retrieved from DB.");
+                    LogWorker("Alert records have been retrieved from DB.");
+                }
+                this.Dispatcher.Invoke(() => { AlertTable.ItemsSource = AlertData.DefaultView; });
+                this.Dispatcher.Invoke(() => { AlertTable_Loaded(new object(), new RoutedEventArgs()); });
+            }
+            catch(Exception ex)
+            {
+                ConsoleAddItem(ex.Message);
+                LogWorker(ex.Message);
+            }
+            if (conn.State == System.Data.ConnectionState.Open)
+            {
+                try
+                {
+                    conn.Close();
+                    ConsoleAddItem("DB Connection Closed.");
+                    LogWorker("DB Connection Closed.");
+                }
+                catch { }
+            }
+        }
+
+
+        private void LogWorker(String log)
+        {
+            try
+            {
+                using (StreamWriter w = File.AppendText(LogFileName))
+                {
+                    w.WriteLine("{0} : {1}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), log);
+                }
             }
             catch (Exception ex)
             {
                 ConsoleAddItem(ex.Message);
             }
-            if (conn.State == System.Data.ConnectionState.Open)
-            {
-                conn.Close();
-                ConsoleAddItem("DB Connection Closed.");
-            }
-            return result;
         }
 
 
