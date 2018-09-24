@@ -22,7 +22,6 @@ using System.Windows.Shapes;
 
 namespace Shiny
 {
-    // TODO: Remove highlight effect from button
     // TODO: Create an alert pop-up when a new message is recieved
 
     public partial class MainWindow : Window
