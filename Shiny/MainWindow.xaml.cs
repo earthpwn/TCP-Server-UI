@@ -23,6 +23,11 @@ using System.Windows.Shapes;
 namespace Shiny
 {
     // TODO: Create an alert pop-up when a new message is recieved
+    // TODO: Add additional column to database, indicating the alarm situation such that on/off
+    // TODO: Create another Data Grid & Table to track ongoing alarms which will only retrieve active alarms
+    // TODO: Make additional code changes regarding DB change above (inserting & retrieving alarms, data table & data grid etc)
+    // TODO: Add another data grid column to shut down alarms (or some other control element)
+    // PS: Do not touch current data grid. This will be used for historic purposes
 
     public partial class MainWindow : Window
     {
@@ -108,7 +113,7 @@ namespace Shiny
 
         private async void StartServer()
         {
-            const string IP_Adresi = "127.0.0.1";
+            const string IP_Adresi = "192.168.1.203"; // qanqi modul testi için static ip lazım malum XD halledersin sen de. hem 203 güzel bi ip. walla
             const int Port_No = 5000;
             List<Thread> threadler = new List<Thread>();
 
@@ -194,8 +199,7 @@ namespace Shiny
             MySqlConnection conn = new MySqlConnection(connStr);
             try
             {
-                //todo: force to use time zone of Turkey. now using local time settings(?)
-                String alertTime = DateTime.Now.ToString();
+                String alertTime = DateTime.Now.ToString(System.Globalization.CultureInfo.CreateSpecificCulture("tr-TR"));
                 conn.Open();
                 ConsoleAddItem("DB Connection established!");
                 LogWorker("DB Connection established!");
