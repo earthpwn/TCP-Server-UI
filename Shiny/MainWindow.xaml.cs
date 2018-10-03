@@ -23,16 +23,25 @@ using System.Windows.Shapes;
 namespace Shiny
 {
     // TODO: Create an alert pop-up when a new message is recieved
-    // TODO: Add additional column to database, indicating the alarm situation such that on/off
-    // TODO: Create another Data Grid & Table to track ongoing alarms which will only retrieve active alarms
-    // TODO: Make additional code changes regarding DB change above (inserting & retrieving alarms, data table & data grid etc)
-    // TODO: Add another data grid column to shut down alarms (or some other control element)
+    // TODO NEXT: Pop-up that window when alarm is recieved & activity column double click event below (or bind it to whatever solution we r gonna have)
+
+    //    ALARM SHUT DOWN FUNCTINALITY
+    // TODO: Add another data grid column to shut down alarms (or some other control element)   / or use activity column /update: check ActiveAlertTable_MouseDoubleClick at bottom
+    // TODO: Keep track of client IPs (active alarms') in order to send them a message to disable them. 
+    // TODO: Disabled ones will be removed from active list. (update db)
     // PS: Do not touch current data grid. This will be used for historic purposes
+
+    // TODO: Modify TCP client solution to show incoming messages (if this functionality doesnt exist yet)
+
+    // To be discussed: Add possible activity properties besides on/off such as client connection is lost doesnt mean alert is off... 
+    // OFF_CLIENT_DROP, OFF_ADMIN_SHUT_DOWN
+    // use another table column for detailed info how alarm becomes disabled.
 
     public partial class MainWindow : Window
     {
         bool serverRunning = false;
         DataTable AlertData = new DataTable();
+        DataTable ActiveAlertData = new DataTable();
         static String LogFileName;
 
         public MainWindow()
@@ -41,6 +50,9 @@ namespace Shiny
             LogFileName = "log" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".txt";
             AlertData.Columns.Add("Time", Type.GetType("System.String"));
             AlertData.Columns.Add("Location", Type.GetType("System.String"));
+            ActiveAlertData.Columns.Add("Time", Type.GetType("System.String"));
+            ActiveAlertData.Columns.Add("Location", Type.GetType("System.String"));
+            ActiveAlertData.Columns.Add("Activity", Type.GetType("System.String"));
             RetrieveAlerts();
         }
 
@@ -48,13 +60,31 @@ namespace Shiny
         {
             try
             {
-                if(AlertTable.Columns.Count > 0)
+                if (AlertTable.Columns.Count > 0)
                 {
                     AlertTable.Columns[0].Width = 160;
                     AlertTable.Columns[1].Width = 120;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
+            {
+                ConsoleAddItem(ex.Message);
+                LogWorker(ex.Message);
+            }
+        }
+
+        private void ActiveAlertTable_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (ActiveAlertTable.Columns.Count > 0)
+                {
+                    ActiveAlertTable.Columns[0].Width = 160;
+                    ActiveAlertTable.Columns[1].Width = 120;
+                    ActiveAlertTable.Columns[1].Width = 80;
+                }
+            }
+            catch (Exception ex)
             {
                 ConsoleAddItem(ex.Message);
                 LogWorker(ex.Message);
@@ -203,15 +233,15 @@ namespace Shiny
                 conn.Open();
                 ConsoleAddItem("DB Connection established!");
                 LogWorker("DB Connection established!");
-                MySqlCommand cmd = new MySqlCommand(String.Format("INSERT INTO anan.test (Time, Location) VALUES ('{0}', '{1}')", alertTime, location), conn);
-                cmd.ExecuteNonQuery();
+                MySqlCommand InsertAlert = new MySqlCommand(String.Format("INSERT INTO anan.test (Time, Location, Activity) VALUES ('{0}', '{1}', 'ON')", alertTime, location), conn);
+                InsertAlert.ExecuteNonQuery();
                 ConsoleAddItem("Query was run succesfully!");
                 LogWorker("Query was run succesfully!");
                 result = true;
             }
             catch (Exception ex)
             {
-                
+
             }
             if (conn.State == System.Data.ConnectionState.Open)
             {
@@ -231,7 +261,9 @@ namespace Shiny
             ConsoleAddItem("Retrieving alert data from DB.");
             LogWorker("Retrieving alert data from DB.");
             this.Dispatcher.Invoke(() => { AlertTable.ItemsSource = null; });
+            this.Dispatcher.Invoke(() => { ActiveAlertTable.ItemsSource = null; });
             AlertData.Rows.Clear();
+            ActiveAlertData.Rows.Clear();
             string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
             MySqlConnection conn = new MySqlConnection(connStr);
             try
@@ -239,22 +271,38 @@ namespace Shiny
                 conn.Open();
                 ConsoleAddItem("DB Connection established!");
                 LogWorker("DB Connection established!");
-                MySqlCommand cmd = new MySqlCommand(String.Format("SELECT * FROM anan.test"), conn);
-                ConsoleAddItem("Query is executing...");
-                LogWorker("Query is executing...");
-                using (MySqlDataReader reader = cmd.ExecuteReader())
+                MySqlCommand RetrieveAllAlerts = new MySqlCommand(String.Format("SELECT * FROM anan.test"), conn);
+                ConsoleAddItem("RetrieveAllAlerts Query is executing...");
+                LogWorker("RetrieveAllAlerts Query is executing...");
+                using (MySqlDataReader reader = RetrieveAllAlerts.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         AlertData.Rows.Add(new object[] { reader["Time"].ToString(), reader["Location"].ToString() });
                     }
-                    ConsoleAddItem("Alert records have been retrieved from DB.");
-                    LogWorker("Alert records have been retrieved from DB.");
+                    ConsoleAddItem("All Alert records have been retrieved from DB.");
+                    LogWorker("All Alert records have been retrieved from DB.");
                 }
                 this.Dispatcher.Invoke(() => { AlertTable.ItemsSource = AlertData.DefaultView; });
                 this.Dispatcher.Invoke(() => { AlertTable_Loaded(new object(), new RoutedEventArgs()); });
+
+                //  Active Alerts
+                MySqlCommand RetrieveActiveAlerts = new MySqlCommand(String.Format("SELECT * FROM anan.test WHERE Activity = 'ON'"), conn);
+                ConsoleAddItem("RetrieveActiveAlerts Query is executing...");
+                LogWorker("RetrieveActiveAlerts Query is executing...");
+                using (MySqlDataReader reader = RetrieveActiveAlerts.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        ActiveAlertData.Rows.Add(new object[] { reader["Time"].ToString(), reader["Location"].ToString(), reader["Activity"].ToString() });
+                    }
+                    ConsoleAddItem("Active Alert records have been retrieved from DB.");
+                    LogWorker("Active Alert records have been retrieved from DB.");
+                }
+                this.Dispatcher.Invoke(() => { ActiveAlertTable.ItemsSource = ActiveAlertData.DefaultView; });
+                this.Dispatcher.Invoke(() => { ActiveAlertTable_Loaded(new object(), new RoutedEventArgs()); });
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ConsoleAddItem(ex.Message);
                 LogWorker(ex.Message);
@@ -287,6 +335,13 @@ namespace Shiny
             }
         }
 
+        private void ActiveAlertTable_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (ActiveAlertTable.CurrentColumn.DisplayIndex == 2)
+            {
+                ConsoleAddItem("anan");
+            }
+        }
 
     }
 }
