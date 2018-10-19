@@ -36,7 +36,7 @@ namespace Shiny
     // To be discussed: Add possible activity properties besides on/off such as client connection is lost doesnt mean alert is off... 
     // OFF_CLIENT_DROP, OFF_ADMIN_SHUT_DOWN
     // use another table column for detailed info how alarm becomes disabled.
-    // push notif. test
+    // push notif. test2
     public partial class MainWindow : Window
     {
         bool serverRunning = false;
