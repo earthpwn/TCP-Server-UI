@@ -44,3 +44,7 @@ E:\doc\source\repos\Shiny\Shiny\obj\Debug\AlertShutDownDialog.g.cs
 E:\doc\source\repos\Shiny\Shiny\obj\Debug\AlertShutDownDialog.baml
 E:\doc\source\repos\Shiny\Shiny\obj\Debug\IncomingAlert.g.cs
 E:\doc\source\repos\Shiny\Shiny\obj\Debug\IncomingAlert.baml
+C:\Users\musae\source\repos\TCP-Server-UI-master\Shiny\obj\Debug\AlertShutDownDialog.g.cs
+C:\Users\musae\source\repos\TCP-Server-UI-master\Shiny\obj\Debug\IncomingAlert.g.cs
+C:\Users\musae\source\repos\TCP-Server-UI-master\Shiny\obj\Debug\AlertShutDownDialog.baml
+C:\Users\musae\source\repos\TCP-Server-UI-master\Shiny\obj\Debug\IncomingAlert.baml

@@ -23,8 +23,6 @@ using System.Windows.Shapes;
 namespace Shiny
 {
 
-    //  TODO: Modify TCP Server & Client so that server can send messages to client
-
     //  TODO: Pop-up a message/info box as a warning when client drops
     
     //  TODO: Research on how to store mysql connection string in a secure way. encrypt or something
@@ -164,7 +162,8 @@ namespace Shiny
 
         private async void StartServer()
         {
-            const string IP_Adresi = "192.168.1.203"; // qanqi modul testi için static ip lazım malum XD halledersin sen de. hem 203 güzel bi ip. walla
+            //const string IP_Adresi = "192.168.1.203"; // qanqi modul testi için static ip lazım malum XD halledersin sen de. hem 203 güzel bi ip. walla
+            const string IP_Adresi = "127.0.0.1"; // kötü demiyom kanki güzel ama hata verdi valla xD
             const int Port_No = 5000;
             List<Thread> threadler = new List<Thread>();
 
@@ -375,6 +374,7 @@ namespace Shiny
         }
 
         //  log emekçisi :( tıktıktık
+        //  Emekçi kardeşim :(:( buna asgari mi yatırıyoruz bro?
         private void LogWorker(String log)
         {
             try
@@ -397,8 +397,9 @@ namespace Shiny
             {
                 if (ActiveAlertTable.CurrentColumn.Header.ToString() == "Status")
                 {
-                    //  store ID
+                    //  store ID & IP
                     string ID = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[0].ToString();
+                    string IP = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[4].ToString();
                     //  dialog to shut down
                     AlertShutDownDialog win2 = new AlertShutDownDialog();
                     int result = win2.ReturnResult(ID);
@@ -409,6 +410,27 @@ namespace Shiny
                         try
                         {
                             ConsoleAddItem("Alarm shut down mission has started for Alarm #" + ID);
+
+                            // Mission: Shut the Alarm Down!   Part 1: Sending Signal to Client
+                            try
+                            {
+                                TcpClient client = new TcpClient(IP, 5001);
+                                NetworkStream nwStream = client.GetStream();
+                                String textToSend = "Result: 1";
+                                byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
+                                //Console.WriteLine("Sending : " + textToSend);
+                                nwStream.Write(bytesToSend, 0, bytesToSend.Length);
+                            }
+                            catch (SocketException)
+                            {
+                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online.", ID));
+                            }
+                            catch (IOException)
+                            {
+                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online.", ID));
+                            }
+
+                            // Mission: Shut the Alarm Down!   Part 2: Database Conversation
                             conn.Open();
                             ConsoleAddItem("DB Connection established!");
 
