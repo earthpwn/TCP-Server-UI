@@ -37,9 +37,7 @@ namespace Shiny
     //  TODO: Work on visuals such that alert shut down dialog, active and all alarm grids. make it look cool, use ur imagination madafaka
     //  TODO: In all alarms grid, highlight client drop cases in red
     //  TODO: Make status column of active alarms more detectable. User should be able to understand the functionality easily
-
-
-
+    
 
     public partial class MainWindow : Window
     {
