@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Media;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,27 +21,31 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Resources;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace Shiny
 {
 
     //  TODO: Pop-up a message/info box as a warning when client drops
-    
+
     //  TODO: Research on how to store mysql connection string in a secure way. encrypt or something
 
-    //  TODO: Play an alarm sound when anew alert is recieved
-    //  TODO: SIDE QUEST: When new alert is recieved, bring main window to front and make it optional later on
-    //  TODO: SIDE QUEST: When new alert is recieved, highlight it in yellow or smt, remove highlight when hovered
+    //  TODO: Play an alarm sound when anew alert is recieved -- COMPLETED
+    //  THESE SIDE QUESTS ARE FUCKING IMPOSSIBLE I WASTED HOURS
+    //  TODO: SIDE QUEST: When new alert is recieved, bring main window to front -- COMPLETED -- and make it optional later on -- MAKING SHITS OPTIONAL IS COMPLICATED
+    //  TODO: SIDE QUEST: When new alert is recieved, highlight it in yellow or smt, remove highlight when hovered -- COMPLETED
+    //  okay they weren't impossible i just fix'd it.
 
     //  Visual
     //  TODO: Work on visuals such that alert shut down dialog, active and all alarm grids. make it look cool, use ur imagination madafaka
     //  TODO: In all alarms grid, highlight client drop cases in red
     //  TODO: Make status column of active alarms more detectable. User should be able to understand the functionality easily
-    
+
 
     public partial class MainWindow : Window
     {
         bool serverRunning = false;
+        bool BringWindowToTop = false;
         DataTable AlertData = new DataTable();
         DataTable ActiveAlertData = new DataTable();
         static String LogFileName;
@@ -162,8 +168,8 @@ namespace Shiny
 
         private async void StartServer()
         {
-            //const string IP_Adresi = "192.168.1.203"; // qanqi modul testi için static ip lazım malum XD halledersin sen de. hem 203 güzel bi ip. walla
-            const string IP_Adresi = "127.0.0.1"; // kötü demiyom kanki güzel ama hata verdi valla xD
+            const string IP_Adresi = "192.168.1.203"; // qanqi modul testi için static ip lazım malum XD halledersin sen de. hem 203 güzel bi ip. walla
+            //const string IP_Adresi = "127.0.0.1"; // kötü demiyom kanki güzel ama hata verdi valla xD edit: tamam ben malım
             const int Port_No = 5000;
             List<Thread> threadler = new List<Thread>();
 
@@ -191,7 +197,6 @@ namespace Shiny
             Thread.CurrentThread.Abort();
         }
 
-
         private void IstemciThreadi(TcpListener sunucu)
         {
             TcpClient istemci = sunucu.AcceptTcpClient();
@@ -217,6 +222,39 @@ namespace Shiny
                     if (gelen_veri.Length > 0)
                     {
                         ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
+
+                        // Alarm sound
+                        SoundPlayer simpleSound = new SoundPlayer(@"..\..\alert.wav");
+                        simpleSound.Play();
+
+                        // Bring the window to the front or Flash yellow in the taskbar; based on the user's selection.
+                        if (BringWindowToTop)
+                        {
+                            Dispatcher.Invoke(new Action(() =>
+                            {
+                                if (WindowState == WindowState.Minimized)
+                                {
+                                    WindowState = WindowState.Normal;
+                                }
+
+                                Activate();
+                                Topmost = true;
+                                Topmost = false;
+                                Focus();
+                            }), DispatcherPriority.ContextIdle);
+                        }
+                        else
+                        {
+                            Dispatcher.Invoke(new Action(() =>
+                            {
+                                var helper = new FlashWindowHelper(Application.Current);
+
+                                // Flashes the window and taskbar 5 times and stays solid 
+                                // colored until user focuses the main window
+                                helper.FlashApplicationWindow();
+                            }), DispatcherPriority.ContextIdle);
+                        }
+
                         if (InsertAlert(gelen_veri, ((IPEndPoint)istemci.Client.RemoteEndPoint).Address.ToString(), out LastID))
                         {
                             ConsoleAddItem(String.Format("Alert info has been inserted to DB successfully!"));
@@ -519,6 +557,158 @@ namespace Shiny
                     ConsoleAddItem("DB Connection Closed.");
                 }
                 catch { }
+            }
+        }
+
+        public class FlashWindowHelper
+        {
+            private IntPtr mainWindowHWnd;
+            private Application theApp;
+
+            public FlashWindowHelper(Application app)
+            {
+                this.theApp = app;
+            }
+
+            public void FlashApplicationWindow()
+            {
+                InitializeHandle();
+                Flash(this.mainWindowHWnd, 5);
+            }
+
+            public void StopFlashing()
+            {
+                InitializeHandle();
+
+                if (Win2000OrLater)
+                {
+                    FLASHWINFO fi = CreateFlashInfoStruct(this.mainWindowHWnd, FLASHW_STOP, uint.MaxValue, 0);
+                    FlashWindowEx(ref fi);
+                }
+            }
+
+            private void InitializeHandle()
+            {
+                if (this.mainWindowHWnd == IntPtr.Zero)
+                {
+                    // Delayed creation of Main Window IntPtr as Application.Current passed in to ctor does not have the MainWindow set at that time
+                    var mainWindow = this.theApp.MainWindow;
+                    this.mainWindowHWnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
+                }
+            }
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            private static extern bool FlashWindowEx(ref FLASHWINFO pwfi);
+
+            [StructLayout(LayoutKind.Sequential)]
+            private struct FLASHWINFO
+            {
+                /// <summary>
+                /// The size of the structure in bytes.
+                /// </summary>
+                public uint cbSize;
+                /// <summary>
+                /// A Handle to the Window to be Flashed. The window can be either opened or minimized.
+                /// </summary>
+                public IntPtr hwnd;
+                /// <summary>
+                /// The Flash Status.
+                /// </summary>
+                public uint dwFlags;
+                /// <summary>
+                /// The number of times to Flash the window.
+                /// </summary>
+                public uint uCount;
+                /// <summary>
+                /// The rate at which the Window is to be flashed, in milliseconds. If Zero, the function uses the default cursor blink rate.
+                /// </summary>
+                public uint dwTimeout;
+            }
+
+            /// <summary>
+            /// Stop flashing. The system restores the window to its original stae.
+            /// </summary>
+            public const uint FLASHW_STOP = 0;
+
+            /// <summary>
+            /// Flash the window caption.
+            /// </summary>
+            public const uint FLASHW_CAPTION = 1;
+
+            /// <summary>
+            /// Flash the taskbar button.
+            /// </summary>
+            public const uint FLASHW_TRAY = 2;
+
+            /// <summary>
+            /// Flash both the window caption and taskbar button.
+            /// This is equivalent to setting the FLASHW_CAPTION | FLASHW_TRAY flags.
+            /// </summary>
+            public const uint FLASHW_ALL = 3;
+
+            /// <summary>
+            /// Flash continuously, until the FLASHW_STOP flag is set.
+            /// </summary>
+            public const uint FLASHW_TIMER = 4;
+
+            /// <summary>
+            /// Flash continuously until the window comes to the foreground.
+            /// </summary>
+            public const uint FLASHW_TIMERNOFG = 12;
+
+            /// <summary>
+            /// Flash the spacified Window (Form) until it recieves focus.
+            /// </summary>
+            /// <param name="hwnd"></param>
+            /// <returns></returns>
+            public static bool Flash(IntPtr hwnd)
+            {
+                // Make sure we're running under Windows 2000 or later
+                if (Win2000OrLater)
+                {
+                    FLASHWINFO fi = CreateFlashInfoStruct(hwnd, FLASHW_ALL | FLASHW_TIMERNOFG, uint.MaxValue, 0);
+
+                    return FlashWindowEx(ref fi);
+                }
+                return false;
+            }
+
+            private static FLASHWINFO CreateFlashInfoStruct(IntPtr handle, uint flags, uint count, uint timeout)
+            {
+                FLASHWINFO fi = new FLASHWINFO();
+                fi.cbSize = Convert.ToUInt32(Marshal.SizeOf(fi));
+                fi.hwnd = handle;
+                fi.dwFlags = flags;
+                fi.uCount = count;
+                fi.dwTimeout = timeout;
+                return fi;
+            }
+
+            /// <summary>
+            /// Flash the specified Window (form) for the specified number of times
+            /// </summary>
+            /// <param name="hwnd">The handle of the Window to Flash.</param>
+            /// <param name="count">The number of times to Flash.</param>
+            /// <returns></returns>
+            public static bool Flash(IntPtr hwnd, uint count)
+            {
+                if (Win2000OrLater)
+                {
+                    FLASHWINFO fi = CreateFlashInfoStruct(hwnd, FLASHW_ALL | FLASHW_TIMERNOFG, count, 0);
+
+                    return FlashWindowEx(ref fi);
+                }
+
+                return false;
+            }
+
+            /// <summary>
+            /// A boolean value indicating whether the application is running on Windows 2000 or later.
+            /// </summary>
+            private static bool Win2000OrLater
+            {
+                get { return Environment.OSVersion.Version.Major >= 5; }
             }
         }
 
