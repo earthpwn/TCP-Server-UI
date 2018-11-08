@@ -7,6 +7,7 @@ using System.Linq;
 using System.Media;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -30,12 +31,7 @@ namespace Shiny
 
     //  TODO: Research on how to store mysql connection string in a secure way. encrypt or something
 
-    //  TODO: Play an alarm sound when anew alert is recieved -- COMPLETED
-    //  THESE SIDE QUESTS ARE FUCKING IMPOSSIBLE I WASTED HOURS
-    //  TODO: SIDE QUEST: When new alert is recieved, bring main window to front -- COMPLETED -- and make it optional later on -- MAKING SHITS OPTIONAL IS COMPLICATED
-    //  TODO: SIDE QUEST: When new alert is recieved, highlight it in yellow or smt, remove highlight when hovered -- COMPLETED
-    //  okay they weren't impossible i just fix'd it.
-
+        
     //  Visual
     //  TODO: Work on visuals such that alert shut down dialog, active and all alarm grids. make it look cool, use ur imagination madafaka
     //  TODO: In all alarms grid, highlight client drop cases in red
@@ -45,7 +41,6 @@ namespace Shiny
     public partial class MainWindow : Window
     {
         bool serverRunning = false;
-        bool BringWindowToTop = false;
         DataTable AlertData = new DataTable();
         DataTable ActiveAlertData = new DataTable();
         static String LogFileName;
@@ -78,6 +73,7 @@ namespace Shiny
             ActiveAlertData.Columns.Add("Status", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("IP", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("Activity", Type.GetType("System.String"));
+            BringTop.IsChecked = Properties.Settings.Default.BringWindowToTop;
             RetrieveAlerts(true, null);
         }
 
@@ -169,7 +165,7 @@ namespace Shiny
         private async void StartServer()
         {
             const string IP_Adresi = "192.168.1.203"; // qanqi modul testi için static ip lazım malum XD halledersin sen de. hem 203 güzel bi ip. walla
-            //const string IP_Adresi = "127.0.0.1"; // kötü demiyom kanki güzel ama hata verdi valla xD edit: tamam ben malım
+            //const string IP_Adresi = "127.0.0.1"; // kötü demiyom kanki güzel ama hata verdi valla xD edit: tamam ben malım lulxD
             const int Port_No = 5000;
             List<Thread> threadler = new List<Thread>();
 
@@ -222,13 +218,18 @@ namespace Shiny
                     if (gelen_veri.Length > 0)
                     {
                         ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
-
-                        // Alarm sound
-                        SoundPlayer simpleSound = new SoundPlayer(@"..\..\alert.wav");
-                        simpleSound.Play();
-
+                        
+                        // Play sound
+                        Assembly assembly;
+                        SoundPlayer sp;
+                        assembly = Assembly.GetExecutingAssembly();
+                        using(sp = new SoundPlayer(assembly.GetManifestResourceStream("Shiny.alert.wav")))
+                        {
+                            sp.Play();
+                        }
+                        
                         // Bring the window to the front or Flash yellow in the taskbar; based on the user's selection.
-                        if (BringWindowToTop)
+                        if (Properties.Settings.Default.BringWindowToTop)
                         {
                             Dispatcher.Invoke(new Action(() =>
                             {
@@ -711,6 +712,12 @@ namespace Shiny
                 get { return Environment.OSVersion.Version.Major >= 5; }
             }
         }
+        
 
+        private void BringTop_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            Properties.Settings.Default.BringWindowToTop = BringTop.IsChecked.Value;
+            Properties.Settings.Default.Save();
+        }
     }
 }
