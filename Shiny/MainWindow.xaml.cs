@@ -49,7 +49,7 @@ namespace Shiny
         {
             ON_Triggered = 0,
             OFF_AdminShutDown = 1,
-            OFF_ClientDrop = 2,
+            ON_ClientDrop = 2,
         }
 
         public enum Status : byte
@@ -203,18 +203,19 @@ namespace Shiny
 
             NetworkStream yayin = istemci.GetStream();
             string LastID = null;
+            string gelen_veri = "" ;
+            Byte[] gelen_ham_baytlar = null;
 
             //enter to an infinite cycle to be able to handle every change in stream
             while (serverRunning)
             {
-                
                 try
                 {
-                    Byte[] gelen_ham_baytlar = new Byte[istemci.Available];
+                    gelen_ham_baytlar = new Byte[istemci.Available];
                     yayin.Read(gelen_ham_baytlar, 0, gelen_ham_baytlar.Length);
 
                     //translate bytes of request to string
-                    string gelen_veri = Encoding.UTF8.GetString(gelen_ham_baytlar);
+                    gelen_veri = Encoding.UTF8.GetString(gelen_ham_baytlar);
                     if (gelen_veri.Length > 0)
                     {
                         ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
@@ -266,6 +267,7 @@ namespace Shiny
                             ConsoleAddItem(String.Format("Alert info could NOT be inserted!!!"));
                             // TODO: What to do if insert fails ?
                         }
+                        break;
                     }
                 }
                 // Client Drop
@@ -280,8 +282,7 @@ namespace Shiny
                         {
                             conn.Open();
                             ConsoleAddItem("DB Connection established to record client drop.");
-                            ActivityUpdate(Activity.OFF_ClientDrop, (Int32.Parse(LastID) + 1).ToString(), false, conn);
-                            StatusUpdate(Status.OFF, (Int32.Parse(LastID) + 1).ToString(), false, conn);
+                            ActivityUpdate(Activity.ON_ClientDrop, (Int32.Parse(LastID) + 1).ToString(), false, conn);
                             RetrieveAlerts(false, conn);
                             // job's done
                             ConsoleAddItem("Client drop has been recorded successfully");
@@ -304,15 +305,19 @@ namespace Shiny
                     {
                         ConsoleAddItem("Alert ID is null! Cannot change!");
                     }
+
                     break;
                 }
                 // Other Exceptions
                 catch (Exception ex)
                 {
                     ConsoleAddItem(String.Format("Error on Thread ID {0}: " + ex.Message, Thread.CurrentThread.ManagedThreadId));
+                    break;
                 }
             }
+            ConsoleAddItem(String.Format("Aborting #{0}", Thread.CurrentThread.ManagedThreadId));
             Thread.CurrentThread.Abort();
+            ConsoleAddItem("aborted.");
         }
 
 
@@ -343,7 +348,7 @@ namespace Shiny
             }
             catch (Exception ex)
             {
-
+                ConsoleAddItem("Error while inserting: " + ex.Message);
             }
             if (conn.State == System.Data.ConnectionState.Open)
             {
@@ -436,6 +441,7 @@ namespace Shiny
             {
                 if (ActiveAlertTable.CurrentColumn.Header.ToString() == "Status")
                 {
+                    bool missionDone = false;
                     //  store ID & IP
                     string ID = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[0].ToString();
                     string IP = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[4].ToString();
@@ -449,35 +455,69 @@ namespace Shiny
                         try
                         {
                             ConsoleAddItem("Alarm shut down mission has started for Alarm #" + ID);
-
                             // Mission: Shut the Alarm Down!   Part 1: Sending Signal to Client
                             try
                             {
-                                TcpClient client = new TcpClient(IP, 5001);
-                                NetworkStream nwStream = client.GetStream();
-                                String textToSend = "Result: 1";
-                                byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
-                                //Console.WriteLine("Sending : " + textToSend);
-                                nwStream.Write(bytesToSend, 0, bytesToSend.Length);
+                                var client = new TcpClient();
+                                var asyncresult = client.BeginConnect(IP, 5001, null, null);
+                                var success = asyncresult.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+                                if (success)
+                                {
+                                    ConsoleAddItem("Server exist");
+                                    using (NetworkStream nwStream = client.GetStream())
+                                    {
+                                        // YAZ
+                                        String textToSend = "1";
+                                        byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
+                                        nwStream.Write(bytesToSend, 0, bytesToSend.Length);
+                                        ConsoleAddItem(">>>>>>>>>>>>> " + textToSend);
+                                        // OKU,
+                                        byte[] bytesToRead = new byte[client.ReceiveBufferSize];
+                                        int bytesRead = nwStream.Read(bytesToRead, 0, client.ReceiveBufferSize);
+                                        ConsoleAddItem("Received : " + Encoding.ASCII.GetString(bytesToRead, 0, bytesRead));
+                                        // Verify server understood the command
+                                        if (Encoding.ASCII.GetString(bytesToRead, 0, bytesRead) == "k")
+                                        {
+                                            ConsoleAddItem("Initiating hibernation sequence" /* Tospaa, 10.11.2018 */);
+                                            missionDone = true;
+                                        }
+                                        else
+                                        {
+                                            ConsoleAddItem("Handshake failed. Skipping the DB update.");
+                                        }
+
+                                    }
+                                }
+                                else { ConsoleAddItem("Server is unreachable. Skipping DB update."); }
                             }
                             catch (SocketException)
                             {
-                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online.", ID));
+                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
                             }
                             catch (IOException)
                             {
-                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online.", ID));
+                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
                             }
 
-                            // Mission: Shut the Alarm Down!   Part 2: Database Conversation
                             conn.Open();
                             ConsoleAddItem("DB Connection established!");
 
-                            // Status Update
-                            StatusUpdate(Status.OFF, ID, false, conn);
+                            // Mission accomplished! Update DB
+                            if (missionDone)
+                            {
+                                // Mission: Shut the Alarm Down!   Part 2: Database Conversation
+                                
+                                // Status Update
+                                StatusUpdate(Status.OFF, ID, false, conn);
 
-                            // Activity Update
-                            ActivityUpdate(Activity.OFF_AdminShutDown, ID, false, conn);
+                                // Activity Update
+                                ActivityUpdate(Activity.OFF_AdminShutDown, ID, false, conn);
+                            }
+                            // Houston, we may have a problem.
+                            else
+                            {
+                                MessageBox.Show("Alarm deaktif hale getirelemedi.");
+                            }
 
                             // Refresh Alerts
                             RetrieveAlerts(false, conn);
@@ -500,9 +540,9 @@ namespace Shiny
                 }
             }
             //  User clicked somewhere else rather than status column, thus do nothing.
-           catch(Exception ex)
+            catch (Exception ex)
             {
-            }
+            } 
         }
 
         //  Update activity column to nextState
