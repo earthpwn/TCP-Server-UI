@@ -1,12 +1,14 @@
 ﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Media;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -30,31 +32,26 @@ namespace Shiny
 
     //  TODO: Research on how to store mysql connection string in a secure way. encrypt or something
 
-    //  TODO: Play an alarm sound when anew alert is recieved -- COMPLETED
-    //  THESE SIDE QUESTS ARE FUCKING IMPOSSIBLE I WASTED HOURS
-    //  TODO: SIDE QUEST: When new alert is recieved, bring main window to front -- COMPLETED -- and make it optional later on -- MAKING SHITS OPTIONAL IS COMPLICATED
-    //  TODO: SIDE QUEST: When new alert is recieved, highlight it in yellow or smt, remove highlight when hovered -- COMPLETED
-    //  okay they weren't impossible i just fix'd it.
-
+        
     //  Visual
     //  TODO: Work on visuals such that alert shut down dialog, active and all alarm grids. make it look cool, use ur imagination madafaka
-    //  TODO: In all alarms grid, highlight client drop cases in red
+    //  TODO: In all alarms grid, highlight client drop cases in red -- COMPLETED ama ebem sikildi bro var ya götüm sikildi amk ne zormuş ya siktimin şeyi anasINI SİKECEM BU BİLL GEYTSİN BU KADAR ZORLAŞTIRMANIN MANASI NEDİR YA?
     //  TODO: Make status column of active alarms more detectable. User should be able to understand the functionality easily
 
 
     public partial class MainWindow : Window
     {
         bool serverRunning = false;
-        bool BringWindowToTop = false;
         DataTable AlertData = new DataTable();
         DataTable ActiveAlertData = new DataTable();
         static String LogFileName;
+        ObservableCollection<Entries> ConsoleEntriesList = new ObservableCollection<Entries>();
 
         public enum Activity : byte
         {
             ON_Triggered = 0,
             OFF_AdminShutDown = 1,
-            OFF_ClientDrop = 2,
+            ON_ClientDrop = 2,
         }
 
         public enum Status : byte
@@ -78,7 +75,9 @@ namespace Shiny
             ActiveAlertData.Columns.Add("Status", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("IP", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("Activity", Type.GetType("System.String"));
+            BringTop.IsChecked = Properties.Settings.Default.BringWindowToTop;
             RetrieveAlerts(true, null);
+            Console.DataContext = ConsoleEntriesList;
         }
 
         private void AlertTable_Loaded(object sender, RoutedEventArgs e)
@@ -151,11 +150,19 @@ namespace Shiny
 
         }
 
-        private void ConsoleAddItem(String item)
+        private void ConsoleAddItem(String item, int importanceLevel = 0)
         {
             Console.Dispatcher.BeginInvoke(new Action(delegate ()
             {
-                Console.Items.Add(item);
+                ConsoleEntriesList.Add(new Entries(item, importanceLevel));
+
+                //Scroll to the end AUTOMATICALLY, BABY!!!
+                if (VisualTreeHelper.GetChildrenCount(Console) > 0)
+                {
+                    Border border = (Border)VisualTreeHelper.GetChild(Console, 0);
+                    ScrollViewer scrollViewer = (ScrollViewer)VisualTreeHelper.GetChild(border, 0);
+                    scrollViewer.ScrollToBottom();
+                }
             }));
         }
 
@@ -169,7 +176,7 @@ namespace Shiny
         private async void StartServer()
         {
             const string IP_Adresi = "192.168.1.203"; // qanqi modul testi için static ip lazım malum XD halledersin sen de. hem 203 güzel bi ip. walla
-            //const string IP_Adresi = "127.0.0.1"; // kötü demiyom kanki güzel ama hata verdi valla xD edit: tamam ben malım
+            //const string IP_Adresi = "127.0.0.1"; // kötü demiyom kanki güzel ama hata verdi valla xD edit: tamam ben malım lulxD
             const int Port_No = 5000;
             List<Thread> threadler = new List<Thread>();
 
@@ -207,28 +214,34 @@ namespace Shiny
 
             NetworkStream yayin = istemci.GetStream();
             string LastID = null;
+            string gelen_veri = "" ;
+            Byte[] gelen_ham_baytlar = null;
 
             //enter to an infinite cycle to be able to handle every change in stream
             while (serverRunning)
             {
-                
                 try
                 {
-                    Byte[] gelen_ham_baytlar = new Byte[istemci.Available];
+                    gelen_ham_baytlar = new Byte[istemci.Available];
                     yayin.Read(gelen_ham_baytlar, 0, gelen_ham_baytlar.Length);
 
                     //translate bytes of request to string
-                    string gelen_veri = Encoding.UTF8.GetString(gelen_ham_baytlar);
+                    gelen_veri = Encoding.UTF8.GetString(gelen_ham_baytlar);
                     if (gelen_veri.Length > 0)
                     {
                         ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
-
-                        // Alarm sound
-                        SoundPlayer simpleSound = new SoundPlayer(@"..\..\alert.wav");
-                        simpleSound.Play();
-
+                        
+                        // Play sound
+                        Assembly assembly;
+                        SoundPlayer sp;
+                        assembly = Assembly.GetExecutingAssembly();
+                        using(sp = new SoundPlayer(assembly.GetManifestResourceStream("Shiny.alert.wav")))
+                        {
+                            sp.Play();
+                        }
+                        
                         // Bring the window to the front or Flash yellow in the taskbar; based on the user's selection.
-                        if (BringWindowToTop)
+                        if (Properties.Settings.Default.BringWindowToTop)
                         {
                             Dispatcher.Invoke(new Action(() =>
                             {
@@ -265,12 +278,13 @@ namespace Shiny
                             ConsoleAddItem(String.Format("Alert info could NOT be inserted!!!"));
                             // TODO: What to do if insert fails ?
                         }
+                        break;
                     }
                 }
                 // Client Drop
                 catch (System.IO.IOException)
                 {
-                    ConsoleAddItem(String.Format("Connection lost. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
+                    ConsoleAddItem(String.Format("Connection lost. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId), 2);
                     if(LastID != null)
                     {
                         string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
@@ -279,15 +293,14 @@ namespace Shiny
                         {
                             conn.Open();
                             ConsoleAddItem("DB Connection established to record client drop.");
-                            ActivityUpdate(Activity.OFF_ClientDrop, (Int32.Parse(LastID) + 1).ToString(), false, conn);
-                            StatusUpdate(Status.OFF, (Int32.Parse(LastID) + 1).ToString(), false, conn);
+                            ActivityUpdate(Activity.ON_ClientDrop, (Int32.Parse(LastID) + 1).ToString(), false, conn);
                             RetrieveAlerts(false, conn);
                             // job's done
                             ConsoleAddItem("Client drop has been recorded successfully");
                         }
                         catch(Exception ex)
                         {
-                            ConsoleAddItem("Error while changing status to client drop: " + ex.Message);
+                            ConsoleAddItem("Error while changing status to client drop: " + ex.Message, 2);
                         }
                         if (conn.State == System.Data.ConnectionState.Open)
                         {
@@ -303,15 +316,19 @@ namespace Shiny
                     {
                         ConsoleAddItem("Alert ID is null! Cannot change!");
                     }
+
                     break;
                 }
                 // Other Exceptions
                 catch (Exception ex)
                 {
                     ConsoleAddItem(String.Format("Error on Thread ID {0}: " + ex.Message, Thread.CurrentThread.ManagedThreadId));
+                    break;
                 }
             }
+            ConsoleAddItem(String.Format("Aborting #{0}", Thread.CurrentThread.ManagedThreadId));
             Thread.CurrentThread.Abort();
+            ConsoleAddItem("aborted.");
         }
 
 
@@ -342,7 +359,7 @@ namespace Shiny
             }
             catch (Exception ex)
             {
-
+                ConsoleAddItem("Error while inserting: " + ex.Message, 2);
             }
             if (conn.State == System.Data.ConnectionState.Open)
             {
@@ -435,6 +452,7 @@ namespace Shiny
             {
                 if (ActiveAlertTable.CurrentColumn.Header.ToString() == "Status")
                 {
+                    bool missionDone = false;
                     //  store ID & IP
                     string ID = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[0].ToString();
                     string IP = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[4].ToString();
@@ -448,35 +466,69 @@ namespace Shiny
                         try
                         {
                             ConsoleAddItem("Alarm shut down mission has started for Alarm #" + ID);
-
                             // Mission: Shut the Alarm Down!   Part 1: Sending Signal to Client
                             try
                             {
-                                TcpClient client = new TcpClient(IP, 5001);
-                                NetworkStream nwStream = client.GetStream();
-                                String textToSend = "Result: 1";
-                                byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
-                                //Console.WriteLine("Sending : " + textToSend);
-                                nwStream.Write(bytesToSend, 0, bytesToSend.Length);
+                                var client = new TcpClient();
+                                var asyncresult = client.BeginConnect(IP, 5001, null, null);
+                                var success = asyncresult.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+                                if (success)
+                                {
+                                    ConsoleAddItem("Server exist");
+                                    using (NetworkStream nwStream = client.GetStream())
+                                    {
+                                        // YAZ
+                                        String textToSend = "1";
+                                        byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
+                                        nwStream.Write(bytesToSend, 0, bytesToSend.Length);
+                                        ConsoleAddItem(">>>>>>>>>>>>> " + textToSend);
+                                        // OKU,
+                                        byte[] bytesToRead = new byte[client.ReceiveBufferSize];
+                                        int bytesRead = nwStream.Read(bytesToRead, 0, client.ReceiveBufferSize);
+                                        ConsoleAddItem("Received : " + Encoding.ASCII.GetString(bytesToRead, 0, bytesRead));
+                                        // Verify server understood the command
+                                        if (Encoding.ASCII.GetString(bytesToRead, 0, bytesRead) == "k")
+                                        {
+                                            ConsoleAddItem("Initiating hibernation sequence" /* Tospaa, 10.11.2018 */);
+                                            missionDone = true;
+                                        }
+                                        else
+                                        {
+                                            ConsoleAddItem("Handshake failed. Skipping the DB update.");
+                                        }
+
+                                    }
+                                }
+                                else { ConsoleAddItem("Server is unreachable. Skipping DB update."); }
                             }
                             catch (SocketException)
                             {
-                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online.", ID));
+                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
                             }
                             catch (IOException)
                             {
-                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online.", ID));
+                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
                             }
 
-                            // Mission: Shut the Alarm Down!   Part 2: Database Conversation
                             conn.Open();
                             ConsoleAddItem("DB Connection established!");
 
-                            // Status Update
-                            StatusUpdate(Status.OFF, ID, false, conn);
+                            // Mission accomplished! Update DB
+                            if (missionDone)
+                            {
+                                // Mission: Shut the Alarm Down!   Part 2: Database Conversation
+                                
+                                // Status Update
+                                StatusUpdate(Status.OFF, ID, false, conn);
 
-                            // Activity Update
-                            ActivityUpdate(Activity.OFF_AdminShutDown, ID, false, conn);
+                                // Activity Update
+                                ActivityUpdate(Activity.OFF_AdminShutDown, ID, false, conn);
+                            }
+                            // Houston, we may have a problem.
+                            else
+                            {
+                                MessageBox.Show("Alarm deaktif hale getirelemedi.");
+                            }
 
                             // Refresh Alerts
                             RetrieveAlerts(false, conn);
@@ -499,9 +551,9 @@ namespace Shiny
                 }
             }
             //  User clicked somewhere else rather than status column, thus do nothing.
-           catch(Exception ex)
+            catch (Exception ex)
             {
-            }
+            } 
         }
 
         //  Update activity column to nextState
@@ -711,6 +763,24 @@ namespace Shiny
                 get { return Environment.OSVersion.Version.Major >= 5; }
             }
         }
+        
+        private void BringTop_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            Properties.Settings.Default.BringWindowToTop = BringTop.IsChecked.Value;
+            Properties.Settings.Default.Save();
+        }
 
+        public class Entries
+        {
+            public Entries(string strEntry, int lvlImportance)
+            {
+                Entry = strEntry;
+                ImportanceLevel = lvlImportance;
+            }
+
+            public string Entry { get; set; }
+
+            public int ImportanceLevel { get; set; }
+        }
     }
 }

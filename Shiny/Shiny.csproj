@@ -155,5 +155,8 @@
   <ItemGroup>
     <Resource Include="stop.png" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="alert.wav" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
