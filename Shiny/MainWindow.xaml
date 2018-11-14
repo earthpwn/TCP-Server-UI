@@ -9,7 +9,17 @@
     <Grid>
         <Button x:Name="ButtonStartServer" Content="Start Server" HorizontalAlignment="Left" Margin="480,46,0,0" VerticalAlignment="Top" Width="143" Height="65" IsCancel="True" Click="ButtonStartServer_Click"/>
         <Button x:Name="ButtonStopServer" Content="Stop Server" HorizontalAlignment="Left" Margin="480,123,0,0" VerticalAlignment="Top" Width="143" Height="65" IsCancel="True" Click="ButtonStopServer_Click"/>
-        <ListBox x:Name="Console" HorizontalAlignment="Left" Height="619" Margin="66,46,0,0" VerticalAlignment="Top" Width="370" SelectionChanged="Console_SelectionChanged"/>
+        <ListBox x:Name="Console" HorizontalAlignment="Left" Height="619" Margin="66,46,0,0" VerticalAlignment="Top" Width="370" SelectionChanged="Console_SelectionChanged" ItemsSource="{Binding}" DisplayMemberPath="Entry">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="{x:Type ListBoxItem}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Path=ImportanceLevel}" Value="2">
+                            <Setter Property="ListBoxItem.Background"  Value="Red" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ListBox.ItemContainerStyle>
+        </ListBox>
         <Button x:Name="StartnStopButton"  HorizontalAlignment="Left" Margin="502,214,0,0" VerticalAlignment="Top" Width="96" Height="96" BorderThickness="0" Click="StartnStopButton_Click" BorderBrush="{x:Null}" Foreground="{x:Null}" Background="{x:Null}" Style="{StaticResource RemoveBackgroundGlow}" >
             <StackPanel>
                 <Image Source="start.png" Stretch="Uniform" Height="100" Width="100"/>

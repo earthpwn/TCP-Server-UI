@@ -1,6 +1,7 @@
 ﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -34,7 +35,7 @@ namespace Shiny
         
     //  Visual
     //  TODO: Work on visuals such that alert shut down dialog, active and all alarm grids. make it look cool, use ur imagination madafaka
-    //  TODO: In all alarms grid, highlight client drop cases in red
+    //  TODO: In all alarms grid, highlight client drop cases in red -- COMPLETED ama ebem sikildi bro var ya götüm sikildi amk ne zormuş ya siktimin şeyi anasINI SİKECEM BU BİLL GEYTSİN BU KADAR ZORLAŞTIRMANIN MANASI NEDİR YA?
     //  TODO: Make status column of active alarms more detectable. User should be able to understand the functionality easily
 
 
@@ -44,6 +45,7 @@ namespace Shiny
         DataTable AlertData = new DataTable();
         DataTable ActiveAlertData = new DataTable();
         static String LogFileName;
+        ObservableCollection<Entries> ConsoleEntriesList = new ObservableCollection<Entries>();
 
         public enum Activity : byte
         {
@@ -75,6 +77,7 @@ namespace Shiny
             ActiveAlertData.Columns.Add("Activity", Type.GetType("System.String"));
             BringTop.IsChecked = Properties.Settings.Default.BringWindowToTop;
             RetrieveAlerts(true, null);
+            Console.DataContext = ConsoleEntriesList;
         }
 
         private void AlertTable_Loaded(object sender, RoutedEventArgs e)
@@ -147,11 +150,19 @@ namespace Shiny
 
         }
 
-        private void ConsoleAddItem(String item)
+        private void ConsoleAddItem(String item, int importanceLevel = 0)
         {
             Console.Dispatcher.BeginInvoke(new Action(delegate ()
             {
-                Console.Items.Add(item);
+                ConsoleEntriesList.Add(new Entries(item, importanceLevel));
+
+                //Scroll to the end AUTOMATICALLY, BABY!!!
+                if (VisualTreeHelper.GetChildrenCount(Console) > 0)
+                {
+                    Border border = (Border)VisualTreeHelper.GetChild(Console, 0);
+                    ScrollViewer scrollViewer = (ScrollViewer)VisualTreeHelper.GetChild(border, 0);
+                    scrollViewer.ScrollToBottom();
+                }
             }));
         }
 
@@ -273,7 +284,7 @@ namespace Shiny
                 // Client Drop
                 catch (System.IO.IOException)
                 {
-                    ConsoleAddItem(String.Format("Connection lost. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
+                    ConsoleAddItem(String.Format("Connection lost. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId), 2);
                     if(LastID != null)
                     {
                         string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
@@ -289,7 +300,7 @@ namespace Shiny
                         }
                         catch(Exception ex)
                         {
-                            ConsoleAddItem("Error while changing status to client drop: " + ex.Message);
+                            ConsoleAddItem("Error while changing status to client drop: " + ex.Message, 2);
                         }
                         if (conn.State == System.Data.ConnectionState.Open)
                         {
@@ -348,7 +359,7 @@ namespace Shiny
             }
             catch (Exception ex)
             {
-                ConsoleAddItem("Error while inserting: " + ex.Message);
+                ConsoleAddItem("Error while inserting: " + ex.Message, 2);
             }
             if (conn.State == System.Data.ConnectionState.Open)
             {
@@ -753,11 +764,23 @@ namespace Shiny
             }
         }
         
-
         private void BringTop_CheckedChanged(object sender, RoutedEventArgs e)
         {
             Properties.Settings.Default.BringWindowToTop = BringTop.IsChecked.Value;
             Properties.Settings.Default.Save();
+        }
+
+        public class Entries
+        {
+            public Entries(string strEntry, int lvlImportance)
+            {
+                Entry = strEntry;
+                ImportanceLevel = lvlImportance;
+            }
+
+            public string Entry { get; set; }
+
+            public int ImportanceLevel { get; set; }
         }
     }
 }
