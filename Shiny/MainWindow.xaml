@@ -9,24 +9,27 @@
     <Grid>
         <Button x:Name="ButtonStartServer" Content="Start Server" HorizontalAlignment="Left" Margin="480,46,0,0" VerticalAlignment="Top" Width="143" Height="65" IsCancel="True" Click="ButtonStartServer_Click"/>
         <Button x:Name="ButtonStopServer" Content="Stop Server" HorizontalAlignment="Left" Margin="480,123,0,0" VerticalAlignment="Top" Width="143" Height="65" IsCancel="True" Click="ButtonStopServer_Click"/>
-        <ListBox x:Name="Console" HorizontalAlignment="Left" Height="619" Margin="66,46,0,0" VerticalAlignment="Top" Width="370" SelectionChanged="Console_SelectionChanged" ItemsSource="{Binding}" DisplayMemberPath="Entry">
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="{x:Type ListBoxItem}">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Path=ImportanceLevel}" Value="2">
-                            <Setter Property="ListBoxItem.Background"  Value="Red" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ListBox.ItemContainerStyle>
-        </ListBox>
+        <ListBox x:Name="Console" HorizontalAlignment="Left" Height="619" Margin="66,46,0,0" VerticalAlignment="Top" Width="370" SelectionChanged="Console_SelectionChanged" ItemsSource="{Binding}" DisplayMemberPath="Entry"/>
         <Button x:Name="StartnStopButton"  HorizontalAlignment="Left" Margin="502,214,0,0" VerticalAlignment="Top" Width="96" Height="96" BorderThickness="0" Click="StartnStopButton_Click" BorderBrush="{x:Null}" Foreground="{x:Null}" Background="{x:Null}" Style="{StaticResource RemoveBackgroundGlow}" >
             <StackPanel>
                 <Image Source="start.png" Stretch="Uniform" Height="100" Width="100"/>
             </StackPanel>
         </Button>
         <DataGrid x:Name="AlertTable" ItemsSource="{Binding}" Loaded="AlertTable_Loaded" HorizontalAlignment="Left" Height="619" Margin="666,46,0,0" VerticalAlignment="Top" Width="284" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False"/>
-        <DataGrid x:Name="ActiveAlertTable" HorizontalAlignment="Left" Height="356" Margin="972,46,0,0" VerticalAlignment="Top" Width="452" Loaded="ActiveAlertTable_Loaded" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" MouseDoubleClick="ActiveAlertTable_MouseDoubleClick" CanUserSortColumns="False"/>
+        <DataGrid x:Name="ActiveAlertTable" ItemsSource="{Binding}" HorizontalAlignment="Left" Height="356" Margin="972,46,0,0" VerticalAlignment="Top" Width="452" Loaded="ActiveAlertTable_Loaded" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" MouseDoubleClick="ActiveAlertTable_MouseDoubleClick" CanUserSortColumns="False">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Activity}" Value="ON_ClientDrop">
+                            <Setter Property="Background" Value="Red"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="OFF">
+                            <Setter Property="Background" Value="Green"></Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
         <CheckBox x:Name="BringTop" Content="Bring window to top" HorizontalAlignment="Left" Margin="502,352,0,0" VerticalAlignment="Top" Height="20" Width="141" Checked="BringTop_CheckedChanged" Unchecked="BringTop_CheckedChanged"/>
     </Grid>
 
