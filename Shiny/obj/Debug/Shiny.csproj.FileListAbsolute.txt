@@ -73,4 +73,8 @@ C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\obj\Debug\Shiny.csp
 C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\obj\Debug\Shiny.csproj.CopyComplete
 C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\obj\Debug\Shiny.exe
 C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\obj\Debug\Shiny.pdb
+C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialDesignColors.dll
+C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialDesignThemes.Wpf.dll
+C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialDesignThemes.Wpf.pdb
+C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialDesignThemes.Wpf.xml
 C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\obj\Debug\GeneratedInternalTypeHelper.g.cs

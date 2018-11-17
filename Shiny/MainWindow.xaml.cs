@@ -23,6 +23,7 @@ using System.Windows.Navigation;
 using System.Windows.Resources;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using MaterialDesignThemes.Wpf;
 
 namespace Shiny
 {
@@ -133,12 +134,18 @@ namespace Shiny
             {
                 serverRunning = true;
                 Task.Factory.StartNew(() => StartServer());
-                StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/stop.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
+                //StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/stop.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
+                StartnStopButton_Path.Data = Geometry.Parse("M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M9,9H15V15H9");
+                StartnStopButton_Path.Fill = Brushes.DarkRed;
+                //StartnStopButton_Path.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString("#FFFAFAFA");
             }
             else
             {
                 serverRunning = false;
-                StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/start.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
+                //StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/start.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
+                StartnStopButton_Path.Data = Geometry.Parse("M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z");
+                StartnStopButton_Path.Fill = Brushes.LimeGreen;
+                //StartnStopButton_Path.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString("#FFFAFAFA");
             }
         }
 
@@ -209,73 +216,86 @@ namespace Shiny
 
             ConsoleAddItem(String.Format("Client connected with IP {0}", (((IPEndPoint)istemci.Client.RemoteEndPoint).Address)));
 
-            NetworkStream yayin = istemci.GetStream();
             string LastID = null;
-            string gelen_veri = "" ;
-            Byte[] gelen_ham_baytlar = null;
+            string gelen_veri = "";
+            //Byte[] gelen_ham_baytlar = null;
 
             //enter to an infinite cycle to be able to handle every change in stream
             while (serverRunning)
             {
                 try
                 {
-                    gelen_ham_baytlar = new Byte[istemci.Available];
-                    yayin.Read(gelen_ham_baytlar, 0, gelen_ham_baytlar.Length);
-
-                    //translate bytes of request to string
-                    gelen_veri = Encoding.UTF8.GetString(gelen_ham_baytlar);
-                    if (gelen_veri.Length > 0)
+                    using (NetworkStream yayin = istemci.GetStream())
                     {
-                        ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
-                        
-                        // Play sound
-                        Assembly assembly;
-                        SoundPlayer sp;
-                        assembly = Assembly.GetExecutingAssembly();
-                        using(sp = new SoundPlayer(assembly.GetManifestResourceStream("Shiny.alert.wav")))
+                        /*gelen_ham_baytlar = new Byte[istemci.Available];
+                        yayin.Read(gelen_ham_baytlar, 0, gelen_ham_baytlar.Length);
+                        //translate bytes of request to string
+                        gelen_veri = Encoding.UTF8.GetString(gelen_ham_baytlar);
+                        */
+                        byte[] bytesToRead = new byte[istemci.ReceiveBufferSize];
+                        int bytesRead = yayin.Read(bytesToRead, 0, istemci.ReceiveBufferSize);
+                        gelen_veri = Encoding.ASCII.GetString(bytesToRead, 0, bytesRead);
+                        ConsoleAddItem("Received : " + Encoding.ASCII.GetString(bytesToRead, 0, bytesRead));
+                        if (bytesRead > 0)
                         {
-                            sp.Play();
-                        }
-                        
-                        // Bring the window to the front or Flash yellow in the taskbar; based on the user's selection.
-                        if (Properties.Settings.Default.BringWindowToTop)
-                        {
-                            Dispatcher.Invoke(new Action(() =>
+                            ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
+
+                            // Play sound
+                            Assembly assembly;
+                            SoundPlayer sp;
+                            assembly = Assembly.GetExecutingAssembly();
+                            using (sp = new SoundPlayer(assembly.GetManifestResourceStream("Shiny.alert.wav")))
                             {
-                                if (WindowState == WindowState.Minimized)
+                                sp.Play();
+                            }
+
+                            // Bring the window to the front or Flash yellow in the taskbar; based on the user's selection.
+                            if (Properties.Settings.Default.BringWindowToTop)
+                            {
+                                Dispatcher.Invoke(new Action(() =>
                                 {
-                                    WindowState = WindowState.Normal;
-                                }
+                                    if (WindowState == WindowState.Minimized)
+                                    {
+                                        WindowState = WindowState.Normal;
+                                    }
 
-                                Activate();
-                                Topmost = true;
-                                Topmost = false;
-                                Focus();
-                            }), DispatcherPriority.ContextIdle);
-                        }
-                        else
-                        {
-                            Dispatcher.Invoke(new Action(() =>
+                                    Activate();
+                                    Topmost = true;
+                                    Topmost = false;
+                                    Focus();
+                                }), DispatcherPriority.ContextIdle);
+                            }
+                            else
                             {
-                                var helper = new FlashWindowHelper(Application.Current);
+                                Dispatcher.Invoke(new Action(() =>
+                                {
+                                    var helper = new FlashWindowHelper(Application.Current);
 
-                                // Flashes the window and taskbar 5 times and stays solid 
-                                // colored until user focuses the main window
-                                helper.FlashApplicationWindow();
-                            }), DispatcherPriority.ContextIdle);
-                        }
+                                    // Flashes the window and taskbar 5 times and stays solid 
+                                    // colored until user focuses the main window
+                                    helper.FlashApplicationWindow();
+                                }), DispatcherPriority.ContextIdle);
+                            }
 
-                        if (InsertAlert(gelen_veri, ((IPEndPoint)istemci.Client.RemoteEndPoint).Address.ToString(), out LastID))
-                        {
-                            ConsoleAddItem(String.Format("Alert info has been inserted to DB successfully!"));
-                            RetrieveAlerts(true, null);
+                            if (InsertAlert(gelen_veri, ((IPEndPoint)istemci.Client.RemoteEndPoint).Address.ToString(), out LastID))
+                            {
+                                ConsoleAddItem(String.Format("Alert info has been inserted to DB successfully!"));
+                                RetrieveAlerts(true, null);
+
+                                //write
+                                String textToSend = "k";
+                                byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
+                                yayin.Write(bytesToSend, 0, bytesToSend.Length);
+                                ConsoleAddItem(">>>>>>>>>>>>> " + textToSend);
+                                ConsoleAddItem("Device is starting to listen...");
+                                break;
+                            }
+                            else
+                            {
+                                ConsoleAddItem(String.Format("Alert info could NOT be inserted!!!"));
+                                // TODO: What to do if insert fails ?
+                            }
                         }
-                        else
-                        {
-                            ConsoleAddItem(String.Format("Alert info could NOT be inserted!!!"));
-                            // TODO: What to do if insert fails ?
-                        }
-                        break;
                     }
                 }
                 // Client Drop
@@ -524,7 +544,8 @@ namespace Shiny
                             // Houston, we may have a problem.
                             else
                             {
-                                MessageBox.Show("Alarm deaktif hale getirelemedi.");
+                                //MessageBox.Show("Alarm deaktif hale getirelemedi.")
+                                SbarMessage("Alarm deaktif hale getirelemedi.");
                             }
 
                             // Refresh Alerts
@@ -765,6 +786,22 @@ namespace Shiny
         {
             Properties.Settings.Default.BringWindowToTop = BringTop.IsChecked.Value;
             Properties.Settings.Default.Save();
+        }
+
+        public void SbarMessage(string message)
+        {
+            sbar.IsActive = true;
+            sbarMsg.Content = message;
+        }
+
+        private void NewCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void NewCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            sbar.IsActive = false;
         }
     }
 }
