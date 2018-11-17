@@ -115,19 +115,6 @@ namespace Shiny
             }
         }
 
-        private void ButtonStartServer_Click(object sender, RoutedEventArgs e)
-        {
-            ConsoleAddItem("Server is started");
-            serverRunning = true;
-            Task.Factory.StartNew(() => StartServer());
-        }
-
-        private void ButtonStopServer_Click(object sender, RoutedEventArgs e)
-        {
-            ConsoleAddItem("Server is stopped");
-            serverRunning = false;
-        }
-
         private void StartnStopButton_Click(object sender, RoutedEventArgs e)
         {
             if (!serverRunning)
@@ -135,16 +122,16 @@ namespace Shiny
                 serverRunning = true;
                 Task.Factory.StartNew(() => StartServer());
                 //StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/stop.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
-                StartnStopButton_Path.Data = Geometry.Parse("M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M9,9H15V15H9");
-                StartnStopButton_Path.Fill = Brushes.DarkRed;
+                //StartnStopButton_Path.Data = Geometry.Parse("M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M9,9H15V15H9");
+                StartnStopButton.Background = Brushes.DarkRed;
                 //StartnStopButton_Path.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString("#FFFAFAFA");
             }
             else
             {
                 serverRunning = false;
                 //StartnStopButton.Content = new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Shiny;component/start.png")), Stretch = Stretch.Uniform, Height = 100, Width = 100 };
-                StartnStopButton_Path.Data = Geometry.Parse("M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z");
-                StartnStopButton_Path.Fill = Brushes.LimeGreen;
+                //StartnStopButton_Path.Data = Geometry.Parse("M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z");
+                StartnStopButton.Background = Brushes.LimeGreen;
                 //StartnStopButton_Path.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString("#FFFAFAFA");
             }
         }
