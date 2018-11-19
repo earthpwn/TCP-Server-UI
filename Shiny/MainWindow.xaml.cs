@@ -48,7 +48,7 @@ namespace Shiny
     //  #9 TODO: Discuss windowed/fullscreen
     //  Research on dynamic materials/controls
     //  try { If (izi pizi limon sukuizi) { kopipas(ehm) implement it; } else { callme } } catch {callmexd}
-    //  mail test2
+
 
     public partial class MainWindow : Window
     {
