@@ -28,15 +28,26 @@ using MaterialDesignThemes.Wpf;
 namespace Shiny
 {
 
-    //  TODO: Pop-up a message/info box as a warning when client drops
+    //  #1 TODO: Research on how to store mysql connection string in a secure way. encrypt or something
 
-    //  TODO: Research on how to store mysql connection string in a secure way. encrypt or something
+    //  #2 TODO: Add filtering functionality to AlertTable
 
-        
-    //  Visual
-    //  TODO: Work on visuals such that alert shut down dialog, active and all alarm grids. make it look cool, use ur imagination madafaka
-    //  TODO: In all alarms grid, highlight client drop cases in red -- COMPLETED ama ebem sikildi bro var ya götüm sikildi amk ne zormuş ya siktimin şeyi anasINI SİKECEM BU BİLL GEYTSİN BU KADAR ZORLAŞTIRMANIN MANASI NEDİR YA?
-    //  TODO: Make status column of active alarms more detectable. User should be able to understand the functionality easily
+    //  #3 TODO: Add history of alert. Reason is that, most likely we'll need to restrict number of alert shown alert table; may cause performance issues later on.
+    //  Might be a window that pops-up with a button
+
+    //  #4 TODO: Make alert table grid columns sortable. However whole row should be sorted, not only clicked column.
+
+    //  #5 TODO: Add a comment field on shut down dialog. It will be optional where some notes could be taken for that specific alarm.
+    //  #6 TODO: Make related DB & code changes; add another table column in DB for comment, add new columns while inserting, retrieving alerts
+
+    //  #7 TODO: Status column removed from active table. Now any double click on a row will trigger shut down dialog.
+    //  However got a weird bug xd click on a item on active alert data grid. then you can trigger shut down dialog by clicking anywhere on a grid i.e. scroll bars, column names. need to handle it xd
+
+    //  #8 TODO: THE COOL EFECT, when you move your cursor on console, the fadish effect is killer dude! Let's have everywhere xd
+
+    //  #9 TODO: Discuss windowed/fullscreen
+    //  Research on dynamic materials/controls
+    //  try { If (izi pizi limon sukuizi) { kopipas(ehm) implement it; } else { callme } } catch {callmexd}
 
 
     public partial class MainWindow : Window
@@ -51,6 +62,7 @@ namespace Shiny
             ON_Triggered = 0,
             OFF_AdminShutDown = 1,
             ON_ClientDrop = 2,
+            ON_Listening = 3,
         }
 
         public enum Status : byte
@@ -84,7 +96,7 @@ namespace Shiny
             {
                 if (AlertTable.Columns.Count > 0)
                 {
-                    AlertTable.Columns[0].Visibility = Visibility.Hidden;
+                    AlertTable.Columns[0].Width = 60;
                     AlertTable.Columns[1].Width = 160;
                     AlertTable.Columns[2].Width = 120;
                 }
@@ -99,12 +111,13 @@ namespace Shiny
         {
             try
             {
+                
                 if (ActiveAlertTable.Columns.Count > 0)
                 {
-                    ActiveAlertTable.Columns[0].Visibility = Visibility.Hidden;
+                    ActiveAlertTable.Columns[0].Width = 60;
                     ActiveAlertTable.Columns[1].Width = 160;
                     ActiveAlertTable.Columns[2].Width = 120;
-                    ActiveAlertTable.Columns[3].Width = 80;
+                    ActiveAlertTable.Columns[3].Visibility = Visibility.Hidden;
                     ActiveAlertTable.Columns[4].Visibility = Visibility.Hidden;
                     ActiveAlertTable.Columns[5].Visibility = Visibility.Hidden;
                 }
@@ -182,11 +195,6 @@ namespace Shiny
                 {
                     threadler.Add(new Thread(() => IstemciThreadi(sunucu)));
                     threadler[threadler.Count - 1].Start();
-                    /*ConsoleAddItem(String.Format("Current Threads:");
-                    for (int i = 0; i < threadler.Count; i++)
-                    {
-                        ConsoleAddItem(String.Format("Thread ID: {0} - Thread Status: {1}", threadler[i].ManagedThreadId, threadler[i].ThreadState);
-                    }*/
                 }
                 await WaitAsynchronouslyAsync(100);
             }
@@ -199,13 +207,22 @@ namespace Shiny
         {
             TcpClient istemci = sunucu.AcceptTcpClient();
 
-            ConsoleAddItem(String.Format("A client connected. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
-
-            ConsoleAddItem(String.Format("Client connected with IP {0}", (((IPEndPoint)istemci.Client.RemoteEndPoint).Address)));
-
-            string LastID = null;
+            ConsoleAddItem(String.Format("A client connected with IP: {0}. Thread ID: {1}. Inserting alert", (((IPEndPoint)istemci.Client.RemoteEndPoint).Address), Thread.CurrentThread.ManagedThreadId));
+            
+            string ID = null;
             string gelen_veri = "";
-            //Byte[] gelen_ham_baytlar = null;
+            byte[] bytesToRead = null;
+            int bytesRead = 0;
+
+            try
+            {
+                InsertAlert(((IPEndPoint)istemci.Client.RemoteEndPoint).Address.ToString(), out ID);
+                ConsoleAddItem("Alert info has been added to DB!");
+            }
+            catch(Exception ex)
+            {
+                ConsoleAddItem("Error while insertion alert: " + ex.Message);
+            }
 
             //enter to an infinite cycle to be able to handle every change in stream
             while (serverRunning)
@@ -214,73 +231,24 @@ namespace Shiny
                 {
                     using (NetworkStream yayin = istemci.GetStream())
                     {
-                        /*gelen_ham_baytlar = new Byte[istemci.Available];
-                        yayin.Read(gelen_ham_baytlar, 0, gelen_ham_baytlar.Length);
-                        //translate bytes of request to string
-                        gelen_veri = Encoding.UTF8.GetString(gelen_ham_baytlar);
-                        */
-                        byte[] bytesToRead = new byte[istemci.ReceiveBufferSize];
-                        int bytesRead = yayin.Read(bytesToRead, 0, istemci.ReceiveBufferSize);
+                        bytesToRead = new byte[istemci.ReceiveBufferSize];
+                        bytesRead = yayin.Read(bytesToRead, 0, istemci.ReceiveBufferSize);
                         gelen_veri = Encoding.ASCII.GetString(bytesToRead, 0, bytesRead);
                         ConsoleAddItem("Received : " + Encoding.ASCII.GetString(bytesToRead, 0, bytesRead));
                         if (bytesRead > 0)
                         {
                             ConsoleAddItem(String.Format("{0}: {1}", Thread.CurrentThread.ManagedThreadId, gelen_veri));
-
-                            // Play sound
-                            Assembly assembly;
-                            SoundPlayer sp;
-                            assembly = Assembly.GetExecutingAssembly();
-                            using (sp = new SoundPlayer(assembly.GetManifestResourceStream("Shiny.alert.wav")))
+                            
+                            if (UpdateAlert(gelen_veri, ((IPEndPoint)istemci.Client.RemoteEndPoint).Address.ToString(), ID))
                             {
-                                sp.Play();
-                            }
-
-                            // Bring the window to the front or Flash yellow in the taskbar; based on the user's selection.
-                            if (Properties.Settings.Default.BringWindowToTop)
-                            {
-                                Dispatcher.Invoke(new Action(() =>
-                                {
-                                    if (WindowState == WindowState.Minimized)
-                                    {
-                                        WindowState = WindowState.Normal;
-                                    }
-
-                                    Activate();
-                                    Topmost = true;
-                                    Topmost = false;
-                                    Focus();
-                                }), DispatcherPriority.ContextIdle);
-                            }
-                            else
-                            {
-                                Dispatcher.Invoke(new Action(() =>
-                                {
-                                    var helper = new FlashWindowHelper(Application.Current);
-
-                                    // Flashes the window and taskbar 5 times and stays solid 
-                                    // colored until user focuses the main window
-                                    helper.FlashApplicationWindow();
-                                }), DispatcherPriority.ContextIdle);
-                            }
-
-                            if (InsertAlert(gelen_veri, ((IPEndPoint)istemci.Client.RemoteEndPoint).Address.ToString(), out LastID))
-                            {
-                                ConsoleAddItem(String.Format("Alert info has been inserted to DB successfully!"));
+                                ConsoleAddItem(String.Format("Alert info has been updated to DB successfully!"));
                                 RetrieveAlerts(true, null);
-
-                                //write
-                                String textToSend = "k";
-                                byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
-                                yayin.Write(bytesToSend, 0, bytesToSend.Length);
-                                ConsoleAddItem(">>>>>>>>>>>>> " + textToSend);
-                                ConsoleAddItem("Device is starting to listen...");
                                 break;
                             }
                             else
                             {
-                                ConsoleAddItem(String.Format("Alert info could NOT be inserted!!!"));
-                                // TODO: What to do if insert fails ?
+                                ConsoleAddItem(String.Format("Alert info could NOT be updated!!!"));
+                                // TODO: What to do if update fails ?
                             }
                         }
                     }
@@ -289,7 +257,7 @@ namespace Shiny
                 catch (System.IO.IOException)
                 {
                     ConsoleAddItem(String.Format("Connection lost. Thread ID: {0}", Thread.CurrentThread.ManagedThreadId));
-                    if(LastID != null)
+                    if(ID != null)
                     {
                         string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
                         MySqlConnection conn = new MySqlConnection(connStr);
@@ -297,7 +265,7 @@ namespace Shiny
                         {
                             conn.Open();
                             ConsoleAddItem("DB Connection established to record client drop.");
-                            ActivityUpdate(Activity.ON_ClientDrop, (Int32.Parse(LastID) + 1).ToString(), false, conn);
+                            ActivityUpdate(Activity.ON_ClientDrop, ID, false, conn);
                             RetrieveAlerts(false, conn);
                             // job's done
                             ConsoleAddItem("Client drop has been recorded successfully");
@@ -320,26 +288,64 @@ namespace Shiny
                     {
                         ConsoleAddItem("Alert ID is null! Cannot change!");
                     }
-
+                    RetrieveAlerts(true, null);
                     break;
                 }
                 // Other Exceptions
                 catch (Exception ex)
                 {
                     ConsoleAddItem(String.Format("Error on Thread ID {0}: " + ex.Message, Thread.CurrentThread.ManagedThreadId));
+                    RetrieveAlerts(true, null);
                     break;
                 }
             }
+
+            // Play sound
+            Assembly assembly;
+            SoundPlayer sp;
+            assembly = Assembly.GetExecutingAssembly();
+            using (sp = new SoundPlayer(assembly.GetManifestResourceStream("Shiny.alert.wav")))
+            {
+                sp.Play();
+            }
+
+            // Bring the window to the front or Flash yellow in the taskbar; based on the user's selection.
+            if (Properties.Settings.Default.BringWindowToTop)
+            {
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    if (WindowState == WindowState.Minimized)
+                    {
+                        WindowState = WindowState.Normal;
+                    }
+
+                    Activate();
+                    Topmost = true;
+                    Topmost = false;
+                    Focus();
+                }), DispatcherPriority.ContextIdle);
+            }
+            else
+            {
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    var helper = new FlashWindowHelper(Application.Current);
+
+                    // Flashes the window and taskbar 5 times and stays solid 
+                    // colored until user focuses the main window
+                    helper.FlashApplicationWindow();
+                }), DispatcherPriority.ContextIdle);
+            }
+
             ConsoleAddItem(String.Format("Aborting #{0}", Thread.CurrentThread.ManagedThreadId));
             Thread.CurrentThread.Abort();
-            ConsoleAddItem("aborted.");
         }
 
 
-        private bool InsertAlert(string location, string IP, out string LastID)
+        private bool InsertAlert(string IP, out string ID)
         {
             bool result = false;
-            LastID = null;
+            ID = null;
             string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
             MySqlConnection conn = new MySqlConnection(connStr);
             try
@@ -348,15 +354,15 @@ namespace Shiny
                 conn.Open();
                 ConsoleAddItem("DB Connection established for alert insert!");
 
-                // Get next ID
-                MySqlCommand GetID = new MySqlCommand("SELECT COUNT(ID) FROM anan.test", conn);
-                LastID = GetID.ExecuteScalar().ToString();
-                ConsoleAddItem("Got the last ID: " + LastID);
-
                 // INSERT 
-                MySqlCommand InsertAlert = new MySqlCommand(String.Format("INSERT INTO anan.test (Time, Location, Status, IP, Activity) VALUES ('{0}', '{1}', 'ON', '{2}', '{3}')", alertTime, location, IP, Activity.ON_Triggered), conn);
+                MySqlCommand InsertAlert = new MySqlCommand(String.Format("INSERT INTO anan.test (Time, Location, Status, IP, Activity) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}')", alertTime, "unknown", Status.ON, IP, Activity.ON_Triggered), conn);
                 InsertAlert.ExecuteNonQuery();
                 ConsoleAddItem("Insert query was run succesfully!");
+
+                // Get ID
+                MySqlCommand GetID = new MySqlCommand(String.Format("SELECT ID FROM anan.test WHERE Time = '{0}' AND Location = '{1}' AND Status = '{2}' AND IP = '{3}' AND Activity = '{4}'", alertTime, "unknown", Status.ON, IP, Activity.ON_Triggered), conn);
+                ID = GetID.ExecuteScalar().ToString();
+                ConsoleAddItem("New alert has been added with ID: " + ID);
 
                 // job's done
                 result = true;
@@ -376,6 +382,42 @@ namespace Shiny
             }
             return result;
         }
+
+
+        private bool UpdateAlert(string location, string IP, string ID)
+        {
+            bool result = false;
+            string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                conn.Open();
+                ConsoleAddItem("DB Connection established for alert update!");
+
+                // UPDATE 
+                MySqlCommand UpdatetAlert = new MySqlCommand(String.Format("UPDATE anan.test SET Location = '{0}', Activity = '{1}' WHERE ID = '{2}' AND IP = '{3}'", location, Activity.ON_Listening, ID, IP), conn);
+                UpdatetAlert.ExecuteNonQuery();
+                ConsoleAddItem("Location info has been updated.");
+
+                // job's done
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                ConsoleAddItem("Error while updating: " + ex.Message);
+            }
+            if (conn.State == System.Data.ConnectionState.Open)
+            {
+                try
+                {
+                    conn.Close();
+                    ConsoleAddItem("DB Connection Closed.");
+                }
+                catch { }
+            }
+            return result;
+        }
+
 
         private void RetrieveAlerts(bool withConnection, MySqlConnection conn)
         {
@@ -454,107 +496,105 @@ namespace Shiny
         {
             try
             {
-                if (ActiveAlertTable.CurrentColumn.Header.ToString() == "Status")
+                bool missionDone = false;
+                //  store ID & IP
+                string ID = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[0].ToString();
+                string IP = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[4].ToString();
+                //  dialog to shut down
+                AlertShutDownDialog win2 = new AlertShutDownDialog();
+                int result = win2.ReturnResult(ID);
+                if (result == 1)
                 {
-                    bool missionDone = false;
-                    //  store ID & IP
-                    string ID = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[0].ToString();
-                    string IP = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[4].ToString();
-                    //  dialog to shut down
-                    AlertShutDownDialog win2 = new AlertShutDownDialog();
-                    int result = win2.ReturnResult(ID);
-                    if (result == 1)
+                    string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
+                    MySqlConnection conn = new MySqlConnection(connStr);
+                    try
                     {
-                        string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
-                        MySqlConnection conn = new MySqlConnection(connStr);
+                        ConsoleAddItem("Alarm shut down mission has started for Alarm #" + ID);
+                        // Mission: Shut the Alarm Down!   Part 1: Sending Signal to Client
                         try
                         {
-                            ConsoleAddItem("Alarm shut down mission has started for Alarm #" + ID);
-                            // Mission: Shut the Alarm Down!   Part 1: Sending Signal to Client
-                            try
+                            var client = new TcpClient();
+                            var asyncresult = client.BeginConnect(IP, 5001, null, null);
+                            var success = asyncresult.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+                            if (success)
                             {
-                                var client = new TcpClient();
-                                var asyncresult = client.BeginConnect(IP, 5001, null, null);
-                                var success = asyncresult.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
-                                if (success)
+                                ConsoleAddItem("Server exist");
+                                using (NetworkStream nwStream = client.GetStream())
                                 {
-                                    ConsoleAddItem("Server exist");
-                                    using (NetworkStream nwStream = client.GetStream())
+                                    // YAZ
+                                    String textToSend = "1";
+                                    byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
+                                    nwStream.Write(bytesToSend, 0, bytesToSend.Length);
+                                    ConsoleAddItem(">>>>>>>>>>>>> " + textToSend);
+                                    // OKU,
+                                    byte[] bytesToRead = new byte[client.ReceiveBufferSize];
+                                    int bytesRead = nwStream.Read(bytesToRead, 0, client.ReceiveBufferSize);
+                                    ConsoleAddItem("Received : " + Encoding.ASCII.GetString(bytesToRead, 0, bytesRead));
+                                    // Verify server understood the command
+                                    if (Encoding.ASCII.GetString(bytesToRead, 0, bytesRead) == "k")
                                     {
-                                        // YAZ
-                                        String textToSend = "1";
-                                        byte[] bytesToSend = Encoding.UTF8.GetBytes(textToSend);
-                                        nwStream.Write(bytesToSend, 0, bytesToSend.Length);
-                                        ConsoleAddItem(">>>>>>>>>>>>> " + textToSend);
-                                        // OKU,
-                                        byte[] bytesToRead = new byte[client.ReceiveBufferSize];
-                                        int bytesRead = nwStream.Read(bytesToRead, 0, client.ReceiveBufferSize);
-                                        ConsoleAddItem("Received : " + Encoding.ASCII.GetString(bytesToRead, 0, bytesRead));
-                                        // Verify server understood the command
-                                        if (Encoding.ASCII.GetString(bytesToRead, 0, bytesRead) == "k")
-                                        {
-                                            ConsoleAddItem("Initiating hibernation sequence" /* Tospaa, 10.11.2018 */);
-                                            missionDone = true;
-                                        }
-                                        else
-                                        {
-                                            ConsoleAddItem("Handshake failed. Skipping the DB update.");
-                                        }
-
+                                        ConsoleAddItem("Initiating hibernation sequence" /* Tospaa, 10.11.2018 */);
+                                        missionDone = true;
                                     }
+                                    else
+                                    {
+                                        ConsoleAddItem("Handshake failed. Skipping the DB update.");
+                                    }
+
                                 }
-                                else { ConsoleAddItem("Server is unreachable. Skipping DB update."); }
                             }
-                            catch (SocketException)
-                            {
-                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
-                            }
-                            catch (IOException)
-                            {
-                                ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
-                            }
+                            else { ConsoleAddItem("Server is unreachable. Skipping DB update."); }
+                        }
+                        catch (SocketException)
+                        {
+                            ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
+                        }
+                        catch (IOException)
+                        {
+                            ConsoleAddItem(String.Format("Couldn't send the signal to Alarm #{0}. Target is not online. Skipping the DB update.", ID));
+                        }
 
-                            conn.Open();
-                            ConsoleAddItem("DB Connection established!");
+                        conn.Open();
+                        ConsoleAddItem("DB Connection established!");
 
-                            // Mission accomplished! Update DB
-                            if (missionDone)
-                            {
-                                // Mission: Shut the Alarm Down!   Part 2: Database Conversation
+                        // Mission accomplished! Update DB
+                        if (missionDone)
+                        {
+                            // Mission: Shut the Alarm Down!   Part 2: Database Conversation
                                 
-                                // Status Update
-                                StatusUpdate(Status.OFF, ID, false, conn);
+                            // Status Update
+                            StatusUpdate(Status.OFF, ID, false, conn);
 
-                                // Activity Update
-                                ActivityUpdate(Activity.OFF_AdminShutDown, ID, false, conn);
-                            }
-                            // Houston, we may have a problem.
-                            else
-                            {
-                                //MessageBox.Show("Alarm deaktif hale getirelemedi.")
-                                SbarMessage("Alarm deaktif hale getirelemedi.");
-                            }
-
-                            // Refresh Alerts
-                            RetrieveAlerts(false, conn);
-
+                            // Activity Update
+                            ActivityUpdate(Activity.OFF_AdminShutDown, ID, false, conn);
                         }
-                        catch (Exception ex)
+                        // Houston, we may have a problem.
+                        else
                         {
-                            ConsoleAddItem("Error while changing alarm status: " + ex.Message);
+                            //MessageBox.Show("Alarm deaktif hale getirelemedi.")
+                            SbarMessage("Alarm deaktif hale getirelemedi.");
                         }
-                        if (conn.State == System.Data.ConnectionState.Open)
+
+                        // Refresh Alerts
+                        RetrieveAlerts(false, conn);
+
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleAddItem("Error while changing alarm status: " + ex.Message);
+                    }
+                    if (conn.State == System.Data.ConnectionState.Open)
+                    {
+                        try
                         {
-                            try
-                            {
-                                conn.Close();
-                                ConsoleAddItem("DB Connection Closed.");
-                            }
-                            catch { }
+                            conn.Close();
+                            ConsoleAddItem("DB Connection Closed.");
                         }
+                        catch { }
                     }
                 }
             }
+
             //  User clicked somewhere else rather than status column, thus do nothing.
             catch (Exception ex)
             {
