@@ -22,8 +22,6 @@ C:\Users\musae\source\repos\TCP-Server-UI-master\Shiny\obj\Debug\Shiny.pdb
 E:\doc\source\repos\Shiny\Shiny\bin\Debug\Shiny.exe.config
 E:\doc\source\repos\Shiny\Shiny\bin\Debug\Shiny.exe
 E:\doc\source\repos\Shiny\Shiny\bin\Debug\Shiny.pdb
-E:\doc\source\repos\Shiny\Shiny\bin\Debug\Google.Protobuf.dll
-E:\doc\source\repos\Shiny\Shiny\bin\Debug\MySql.Data.dll
 E:\doc\source\repos\Shiny\Shiny\bin\Debug\Google.Protobuf.xml
 E:\doc\source\repos\Shiny\Shiny\bin\Debug\MySql.Data.xml
 E:\doc\source\repos\Shiny\Shiny\obj\Debug\Shiny.csprojAssemblyReference.cache
@@ -78,3 +76,10 @@ C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialD
 C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialDesignThemes.Wpf.pdb
 C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialDesignThemes.Wpf.xml
 C:\Users\musae\OneDrive\Documents\GitHub\TCP-Server-UI\Shiny\bin\Debug\MaterialDesignColors.pdb
+E:\doc\source\repos\Shiny\Shiny\bin\Debug\MaterialDesignThemes.Wpf.dll
+E:\doc\source\repos\Shiny\Shiny\bin\Debug\MaterialDesignThemes.Wpf.pdb
+E:\doc\source\repos\Shiny\Shiny\bin\Debug\MaterialDesignThemes.Wpf.xml
+E:\doc\source\repos\Shiny\Shiny\bin\Debug\Google.Protobuf.dll
+E:\doc\source\repos\Shiny\Shiny\bin\Debug\MaterialDesignColors.dll
+E:\doc\source\repos\Shiny\Shiny\bin\Debug\MySql.Data.dll
+E:\doc\source\repos\Shiny\Shiny\bin\Debug\MaterialDesignColors.pdb

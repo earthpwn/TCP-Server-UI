@@ -13,7 +13,7 @@
         FontFamily="{DynamicResource MaterialDesignFont}"
         xmlns:local="clr-namespace:Shiny"
         mc:Ignorable="d"
-        Title="MainWindow" Height="724.79" Width="1463.533">
+        Title="MainWindow" Height="905.79" Width="1719.533">
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.New" Executed="NewCommand_Executed" CanExecute="NewCommand_CanExecute" />
     </Window.CommandBindings>
@@ -51,8 +51,8 @@
             </materialDesign:ToggleButtonAssist.OnContent>
         </ToggleButton>
 
-        <DataGrid x:Name="AlertTable" ItemsSource="{Binding}" Loaded="AlertTable_Loaded" HorizontalAlignment="Left" Height="619" Margin="666,46,0,0" VerticalAlignment="Top" Width="284" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False"/>
-        <DataGrid x:Name="ActiveAlertTable" ItemsSource="{Binding}" HorizontalAlignment="Left" Height="356" Margin="972,46,0,0" VerticalAlignment="Top" Width="452" Loaded="ActiveAlertTable_Loaded" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" MouseDoubleClick="ActiveAlertTable_MouseDoubleClick" CanUserSortColumns="False">
+        <DataGrid x:Name="AlertTable" ItemsSource="{Binding}" Loaded="AlertTable_Loaded" HorizontalAlignment="Left" Height="619" Margin="618,46,0,0" VerticalAlignment="Top" Width="464" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False"/>
+        <DataGrid x:Name="ActiveAlertTable" ItemsSource="{Binding}" HorizontalAlignment="Left" Height="356" Margin="1152,46,0,0" VerticalAlignment="Top" Width="512" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False" MouseDoubleClick="ActiveAlertTable_MouseDoubleClick" Loaded="ActiveAlertTable_Loaded">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -63,6 +63,11 @@
                     </Style.Triggers>
                 </Style>
             </DataGrid.RowStyle>
+            <DataGrid.ItemContainerStyle>
+                <Style TargetType="DataGridRow">
+                    <EventSetter Event="MouseDoubleClick" Handler="ActiveAlertTable_MouseDoubleClick"/>
+                </Style>
+            </DataGrid.ItemContainerStyle>
         </DataGrid>
         <!--<CheckBox x:Name="BringTop" Content="Bring window to top" HorizontalAlignment="Left" Margin="502,352,0,0" VerticalAlignment="Top" Height="20" Width="141" Checked="BringTop_CheckedChanged" Unchecked="BringTop_CheckedChanged"/>-->
 
