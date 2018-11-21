@@ -14,178 +14,136 @@
         xmlns:local="clr-namespace:Shiny"
         mc:Ignorable="d"
         Title="MainWindow" Height="905.79" Width="1719.533">
-    <Window.CommandBindings>
-        <CommandBinding Command="ApplicationCommands.New" Executed="NewCommand_Executed" CanExecute="NewCommand_CanExecute" />
-    </Window.CommandBindings>
-    <Grid>
-        <ListBox x:Name="Console" HorizontalAlignment="Left" Height="619" Margin="66,46,0,0" VerticalAlignment="Top" Width="370" SelectionChanged="Console_SelectionChanged"/>
-        <!--<Button x:Name="StartnStopButton" HorizontalAlignment="Left" Margin="490,214,0,0" VerticalAlignment="Top" Width="96" Height="96" BorderThickness="0" Click="StartnStopButton_Click" BorderBrush="{x:Null}" Foreground="{x:Null}" Background="{x:Null}" Style="{DynamicResource MaterialDesignFloatingActionLightButton}">
-            <Viewbox>
-                <Canvas Width="20" Height="20">
-                    <Path x:Name="StartnStopButton_Path" Data="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" Fill="LimeGreen" Stretch="Fill"/>
-                </Canvas>
-            </Viewbox>
-        </Button>-->
+    <materialDesign:DrawerHost IsLeftDrawerOpen="{Binding ElementName=MenuToggleButton, Path=IsChecked}">
+        <materialDesign:DrawerHost.LeftDrawerContent>
+            <DockPanel MinWidth="212">
+                <ToggleButton Style="{StaticResource MaterialDesignHamburgerToggleButton}" 
+                    DockPanel.Dock="Top"
+                    HorizontalAlignment="Right" Margin="16"
+                    IsChecked="{Binding ElementName=MenuToggleButton, Path=IsChecked, Mode=TwoWay}" />
+                <TextBlock>ANAN XD</TextBlock>
+            </DockPanel>
+        </materialDesign:DrawerHost.LeftDrawerContent>
+        <Grid>
+            <materialDesign:ColorZone
+                Mode="PrimaryMid"
+                Padding="16">
+                <DockPanel>
+                    <materialDesign:PopupBox
+                        DockPanel.Dock="Right"
+                        StaysOpen="True">
+                        <Grid
+                        Width="300"
+                        Margin="8,8,8,8">
+                            <Grid.Resources>
+                                <Style
+                                TargetType="CheckBox"
+                                BasedOn="{StaticResource MaterialDesignCheckBox}">
+                                    <Setter
+                                    Property="Margin"
+                                    Value="8,8,10,8" />
+                                </Style>
+                                <Style
+                                TargetType="TextBox"
+                                BasedOn="{StaticResource MaterialDesignTextBox}">
+                                    <Setter
+                                    Property="materialDesign:HintAssist.IsFloating"
+                                    Value="True" />
+                                    <Setter
+                                    Property="Margin"
+                                    Value="8,8,8,8" />
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock
+                            Grid.Column="0"
+                            Grid.Row="0"
+                            Style="{StaticResource MaterialDesignTitleTextBlock}"
+                            Margin="8,8,8,16">
+                            SEÇENEKLER
+                            </TextBlock>
+                            <TextBlock
+                            Grid.Column="0"
+                            Grid.Row="1"
+                            materialDesign:HintAssist.Hint="Setting 1"
+                            Margin="12,8,8,8"
+                            Text="Bring Window to Top" />
+                            <CheckBox
+                            x:Name="BringTop"
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            VerticalAlignment="Bottom"
+                            Checked="BringTop_CheckedChanged"
+                            Unchecked="BringTop_CheckedChanged" />
+                        </Grid>
+                    </materialDesign:PopupBox>
+                    <StackPanel
+                        Orientation="Horizontal">
+                        <ToggleButton
+                            x:Name="MenuToggleButton"
+                            Style="{DynamicResource MaterialDesignHamburgerToggleButton}" />
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            FontSize="22">
+                            Smart Security Tag
+                        </TextBlock>
+                    </StackPanel>
+                </DockPanel>
+            </materialDesign:ColorZone>
 
-        <ToggleButton
-            x:Name="StartnStopButton"
-            Click="StartnStopButton_Click"
-            HorizontalAlignment="Left"
-            Margin="490,214,0,0"
-            VerticalAlignment="Top"
-            Width="96"
-            Height="96"
-            Style="{StaticResource MaterialDesignActionToggleButton}"
-            ToolTip="MaterialDesignActionLightToggleButton" Background="LimeGreen">
-            <ToggleButton.Content>
-                <materialDesign:PackIcon
-                Kind="PlayCircle"
-                Width="85"
-                Height="85" />
-            </ToggleButton.Content>
-            <materialDesign:ToggleButtonAssist.OnContent>
-                <materialDesign:PackIcon
-                Kind="StopCircle"
-                Width="85"
-                Height="85" />
-            </materialDesign:ToggleButtonAssist.OnContent>
-        </ToggleButton>
+            <ListBox x:Name="Console" HorizontalAlignment="Left" Height="550" Margin="66,100,0,0" VerticalAlignment="Top" Width="370" SelectionChanged="Console_SelectionChanged"/>
 
-        <DataGrid x:Name="AlertTable" ItemsSource="{Binding}" Loaded="AlertTable_Loaded" HorizontalAlignment="Left" Height="619" Margin="618,46,0,0" VerticalAlignment="Top" Width="464" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False"/>
-        <DataGrid x:Name="ActiveAlertTable" ItemsSource="{Binding}" HorizontalAlignment="Left" Height="356" Margin="1152,46,0,0" VerticalAlignment="Top" Width="512" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False" MouseDoubleClick="ActiveAlertTable_MouseDoubleClick" Loaded="ActiveAlertTable_Loaded">
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Activity}" Value="ON_ClientDrop">
-                            <Setter Property="Background" Value="{DynamicResource SecondaryAccentBrush}"></Setter>
-                            <Setter Property="Foreground" Value="{DynamicResource SecondaryAccentForegroundBrush}"></Setter>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.RowStyle>
-            <DataGrid.ItemContainerStyle>
-                <Style TargetType="DataGridRow">
-                    <EventSetter Event="MouseDoubleClick" Handler="ActiveAlertTable_MouseDoubleClick"/>
-                </Style>
-            </DataGrid.ItemContainerStyle>
-        </DataGrid>
-        <!--<CheckBox x:Name="BringTop" Content="Bring window to top" HorizontalAlignment="Left" Margin="502,352,0,0" VerticalAlignment="Top" Height="20" Width="141" Checked="BringTop_CheckedChanged" Unchecked="BringTop_CheckedChanged"/>-->
+            <ToggleButton
+                x:Name="StartnStopButton"
+                Click="StartnStopButton_Click"
+                HorizontalAlignment="Left"
+                Margin="490,214,0,0"
+                VerticalAlignment="Top"
+                Width="96"
+                Height="96"
+                Style="{StaticResource MaterialDesignActionToggleButton}"
+                ToolTip="MaterialDesignActionLightToggleButton" Background="LimeGreen">
+                <ToggleButton.Content>
+                    <materialDesign:PackIcon
+                    Kind="PlayCircle"
+                    Width="85"
+                    Height="85" />
+                </ToggleButton.Content>
+                <materialDesign:ToggleButtonAssist.OnContent>
+                    <materialDesign:PackIcon
+                    Kind="StopCircle"
+                    Width="85"
+                    Height="85" />
+                </materialDesign:ToggleButtonAssist.OnContent>
+            </ToggleButton>
 
-        <materialDesign:Snackbar x:Name="sbar" IsActive="False">
-            <materialDesign:SnackbarMessage x:Name="sbarMsg" Content=" " ActionContent="KAPAT" ActionCommand="ApplicationCommands.New" />
-        </materialDesign:Snackbar>
+            <DataGrid x:Name="AlertTable" ItemsSource="{Binding}" Loaded="AlertTable_Loaded" HorizontalAlignment="Left" Height="550" Margin="618,100,0,0" VerticalAlignment="Top" Width="464" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False"/>
+            <DataGrid x:Name="ActiveAlertTable" ItemsSource="{Binding}" HorizontalAlignment="Left" Height="550" Margin="1152,100,0,0" VerticalAlignment="Top" Width="380" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False" MouseDoubleClick="ActiveAlertTable_MouseDoubleClick" MouseMove="ActiveAlertTable_MouseMove" Loaded="ActiveAlertTable_Loaded">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Activity}" Value="ON_ClientDrop">
+                                <Setter Property="Background" Value="{DynamicResource SecondaryAccentBrush}"></Setter>
+                                <Setter Property="Foreground" Value="{DynamicResource SecondaryAccentForegroundBrush}"></Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
 
-        <StackPanel
-            Orientation="Vertical">
-            <materialDesign:PopupBox
-                Margin="16,0,16,0"
-                StaysOpen="True">
-                <Grid
-                    Width="300"
-                    Margin="8,8,8,8">
-                    <Grid.Resources>
-                        <Style
-                            TargetType="CheckBox"
-                            BasedOn="{StaticResource MaterialDesignCheckBox}">
-                            <Setter
-                                Property="Margin"
-                                Value="8,8,10,8" />
-                        </Style>
-                        <Style
-                            TargetType="TextBox"
-                            BasedOn="{StaticResource MaterialDesignTextBox}">
-                            <Setter
-                                Property="materialDesign:HintAssist.IsFloating"
-                                Value="True" />
-                            <Setter
-                                Property="Margin"
-                                Value="8,8,8,8" />
-                        </Style>
-                    </Grid.Resources>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock
-                        Grid.Column="0"
-                        Grid.Row="0"
-                        Style="{StaticResource MaterialDesignTitleTextBlock}"
-                        Margin="8,8,8,16">
-                        SEÇENEKLER
-                    </TextBlock>
-                    <TextBlock
-                        Grid.Column="0"
-                        Grid.Row="1"
-                        materialDesign:HintAssist.Hint="Setting 1"
-                        Margin="12,8,8,8"
-                        Text="Bring Window to Top" />
-                    <CheckBox
-                        x:Name="BringTop"
-                        Grid.Column="1"
-                        Grid.Row="1"
-                        VerticalAlignment="Bottom"
-                        Checked="BringTop_CheckedChanged"
-                        Unchecked="BringTop_CheckedChanged" />
-                    <!--<TextBox
-                        Grid.Column="0"
-                        Grid.Row="2"
-                        materialDesign:HintAssist.Hint="Setting 2"
-                        Text="400" />
-                    <TextBox
-                        Grid.Column="0"
-                        Grid.Row="3"
-                        materialDesign:HintAssist.Hint="Setting 3"
-                        Text="600" />
-                    <CheckBox
-                        Grid.Column="1"
-                        Grid.Row="2"
-                        IsChecked="True"
-                        VerticalAlignment="Bottom" />
-                    <CheckBox
-                        Grid.Column="1"
-                        Grid.Row="3"
-                        VerticalAlignment="Bottom" />
-                    <ComboBox
-                        Grid.Column="0"
-                        Grid.Row="4"
-                        materialDesign:HintAssist.Hint="Setting 4"
-                        materialDesign:HintAssist.IsFloating="True"
-                        MaxDropDownHeight="200"
-                        Margin="8 8 8 8">
-                        <ComboBoxItem>
-                            25%
-                        </ComboBoxItem>
-                        <ComboBoxItem>
-                            50%
-                        </ComboBoxItem>
-                        <ComboBoxItem>
-                            75%
-                        </ComboBoxItem>
-                        <ComboBoxItem>
-                            100%
-                        </ComboBoxItem>
-                        <ComboBoxItem>
-                            150%
-                        </ComboBoxItem>
-                        <ComboBoxItem>
-                            200%
-                        </ComboBoxItem>
-                        <ComboBoxItem>
-                            250%
-                        </ComboBoxItem>
-                        <ComboBoxItem>
-                            501%
-                        </ComboBoxItem>
-                    </ComboBox>-->
-                </Grid>
-            </materialDesign:PopupBox>
-        </StackPanel>
-    </Grid>
+            <materialDesign:Snackbar x:Name="sbar" IsActive="False">
+                <materialDesign:SnackbarMessage x:Name="sbarMsg" Content=" " ActionContent="KAPAT" ActionClick="sbarMsg_ActionClick" />
+            </materialDesign:Snackbar>
+        </Grid>
+    </materialDesign:DrawerHost>
 </Window>
