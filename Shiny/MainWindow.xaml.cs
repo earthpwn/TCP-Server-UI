@@ -24,6 +24,7 @@ using System.Windows.Resources;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using MaterialDesignThemes.Wpf;
+using System.Runtime.CompilerServices;
 
 namespace Shiny
 {
@@ -35,17 +36,14 @@ namespace Shiny
     //  #3 TODO: Add history of alert. Reason is that, most likely we'll need to restrict number of alert shown alert table; may cause performance issues later on.
     //  Might be a window that pops-up with a button
 
-    //  #4 TODO: Make alert table grid columns sortable. However whole row should be sorted, not only clicked column.
+    //  #4 TODO: Make alert table grid columns sortable. However whole row should be sorted, not only clicked column. TSP
 
     //  #5 TODO: Add a comment field on shut down dialog. It will be optional where some notes could be taken for that specific alarm.
     //  #6 TODO: Make related DB & code changes; add another table column in DB for comment, add new columns while inserting, retrieving alerts
 
-    //  #7 TODO: Status column removed from active table. Now any double click on a row will trigger shut down dialog.
-    //  However got a weird bug xd click on a item on active alert data grid. then you can trigger shut down dialog by clicking anywhere on a grid i.e. scroll bars, column names. need to handle it xd
+    //  #8 TODO: THE COOL EFECT, when you move your cursor on console, the fadish effect is killer dude! Let's have everywhere xd TSP
 
-    //  #8 TODO: THE COOL EFECT, when you move your cursor on console, the fadish effect is killer dude! Let's have everywhere xd
-
-    //  #9 TODO: Discuss windowed/fullscreen
+    //  #9 TODO: Discuss windowed/fullscreen TSP
     //  Research on dynamic materials/controls
     //  try { If (izi pizi limon sukuizi) { kopipas(ehm) implement it; } else { callme } } catch {callmexd}
 
@@ -149,16 +147,12 @@ namespace Shiny
             }
         }
 
-        private void Console_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
-
-        private void ConsoleAddItem(String item)
+        private void ConsoleAddItem(string item, [CallerLineNumber] int lineNumber = 0, [CallerMemberName] string caller = null)
         {
             Console.Dispatcher.BeginInvoke(new Action(delegate ()
             {
-                Console.Items.Add(item);
+                //While working with log, line number and member name additions should be considered.
+                Console.Items.Add($"{item} Line: {lineNumber} Caller: {caller}");
 
                 //Scroll to the end AUTOMATICALLY, BABY!!!
                 if (VisualTreeHelper.GetChildrenCount(Console) > 0)
@@ -187,7 +181,8 @@ namespace Shiny
             TcpListener sunucu = new TcpListener(IPAddress.Parse(IP_Adresi), Port_No);
 
             sunucu.Start();
-            ConsoleAddItem(String.Format(String.Format("Server has started on {0}:{1}", IP_Adresi, Port_No)));
+            ConsoleAddItem(String.Format("Server has started on {0}:{1}", IP_Adresi, Port_No));
+            SbarMessage(String.Format("Server has started on {0}:{1}", IP_Adresi, Port_No));
 
             while (serverRunning)
             {
@@ -200,6 +195,7 @@ namespace Shiny
             }
             sunucu.Stop();
             ConsoleAddItem("Server is stopped");
+            SbarMessage("Server is stopped");
             Thread.CurrentThread.Abort();
         }
 
@@ -207,7 +203,7 @@ namespace Shiny
         {
             TcpClient istemci = sunucu.AcceptTcpClient();
 
-            ConsoleAddItem(String.Format("A client connected with IP: {0}. Thread ID: {1}. Inserting alert", (((IPEndPoint)istemci.Client.RemoteEndPoint).Address), Thread.CurrentThread.ManagedThreadId));
+            ConsoleAddItem(String.Format("A client connected with IP: {0}. Thread ID: {1}. Inserting alert", ((IPEndPoint)istemci.Client.RemoteEndPoint).Address, Thread.CurrentThread.ManagedThreadId));
             
             string ID = null;
             string gelen_veri = "";
@@ -281,7 +277,10 @@ namespace Shiny
                                 conn.Close();
                                 ConsoleAddItem("DB Connection Closed.");
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                ConsoleAddItem($"{ex.Message} You should've never seen this.");
+                            }
                         }
                     }
                     else
@@ -378,7 +377,10 @@ namespace Shiny
                     conn.Close();
                     ConsoleAddItem("DB Connection Closed.");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    ConsoleAddItem($"{ex.Message} You should've never seen this.");
+                }
             }
             return result;
         }
@@ -413,7 +415,10 @@ namespace Shiny
                     conn.Close();
                     ConsoleAddItem("DB Connection Closed.");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    ConsoleAddItem($"{ex.Message} You should've never seen this.");
+                }
             }
             return result;
         }
@@ -463,14 +468,17 @@ namespace Shiny
             {
                 ConsoleAddItem(ex.Message);
             }
-            if (withConnection && conn.State == System.Data.ConnectionState.Open)
+            if (withConnection && conn.State == ConnectionState.Open)
             {
                 try
                 {
                     conn.Close();
                     ConsoleAddItem("DB Connection Closed.");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    ConsoleAddItem($"{ex.Message} You should've never seen this.");
+                }
             }
         }
 
@@ -575,6 +583,7 @@ namespace Shiny
                             else
                             {
                                 //MessageBox.Show("Alarm deaktif hale getirelemedi.")
+                                ConsoleAddItem($"ID: {ID} IP: {IP} - Alarm deaktif hale getirelemedi.");
                                 SbarMessage($"ID: {ID} IP: {IP} - Alarm deaktif hale getirelemedi.");
                             }
 
@@ -586,14 +595,17 @@ namespace Shiny
                         {
                             ConsoleAddItem("Error while changing alarm status: " + ex.Message);
                         }
-                        if (conn.State == System.Data.ConnectionState.Open)
+                        if (conn.State == ConnectionState.Open)
                         {
                             try
                             {
                                 conn.Close();
                                 ConsoleAddItem("DB Connection Closed.");
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                ConsoleAddItem($"{ex.Message} You should've never seen this.");
+                            }
                         }
                     }
                 }
@@ -633,7 +645,10 @@ namespace Shiny
                     conn.Close();
                     ConsoleAddItem("DB Connection Closed.");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    ConsoleAddItem($"{ex.Message} You should've never seen this.");
+                }
             }
         }
 
@@ -661,7 +676,10 @@ namespace Shiny
                     conn.Close();
                     ConsoleAddItem("DB Connection Closed.");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    ConsoleAddItem($"{ex.Message} You should've never seen this.");
+                }
             }
         }
 
@@ -825,11 +843,13 @@ namespace Shiny
 
         public void SbarMessage(string message)
         {
+            this.Dispatcher.Invoke(() => {
             sbar.IsActive = true;
             sbarMsg.Content = message;
+            });
         }
 
-        private void sbarMsg_ActionClick(object sender, RoutedEventArgs e)
+        private void SbarMsg_ActionClick(object sender, RoutedEventArgs e)
         {
             sbar.IsActive = false;
         }

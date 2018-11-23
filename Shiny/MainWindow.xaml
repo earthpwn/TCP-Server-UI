@@ -101,7 +101,7 @@
                 </DockPanel>
             </materialDesign:ColorZone>
 
-            <ListBox x:Name="Console" HorizontalAlignment="Left" Height="550" Margin="66,100,0,0" VerticalAlignment="Top" Width="370" SelectionChanged="Console_SelectionChanged"/>
+            <ListBox x:Name="Console" HorizontalAlignment="Left" Height="550" Margin="66,100,0,0" VerticalAlignment="Top" Width="370" ScrollViewer.HorizontalScrollBarVisibility="Visible"/>
 
             <ToggleButton
                 x:Name="StartnStopButton"
@@ -112,7 +112,8 @@
                 Width="96"
                 Height="96"
                 Style="{StaticResource MaterialDesignActionToggleButton}"
-                ToolTip="MaterialDesignActionLightToggleButton" Background="LimeGreen">
+                ToolTip="Start and Stop Server"
+                Background="LimeGreen">
                 <ToggleButton.Content>
                     <materialDesign:PackIcon
                     Kind="PlayCircle"
@@ -142,7 +143,7 @@
             </DataGrid>
 
             <materialDesign:Snackbar x:Name="sbar" IsActive="False">
-                <materialDesign:SnackbarMessage x:Name="sbarMsg" Content=" " ActionContent="KAPAT" ActionClick="sbarMsg_ActionClick" />
+                <materialDesign:SnackbarMessage x:Name="sbarMsg" Content=" " ActionContent="KAPAT" ActionClick="SbarMsg_ActionClick" />
             </materialDesign:Snackbar>
         </Grid>
     </materialDesign:DrawerHost>
