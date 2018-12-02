@@ -5,15 +5,21 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Shiny"
         mc:Ignorable="d"
-        Title="AlertShutDownDialog" Height="201.549" Width="513.521" UseLayoutRounding="True" ResizeMode="NoResize" Topmost="True">
+        Title="AlertShutDownDialog" Height="264.549" Width="513.521" UseLayoutRounding="True" ResizeMode="NoResize" Topmost="True" Icon="stop.png">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="311*"/>
-            <ColumnDefinition Width="195*"/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <Label Content="Alarmı susturmak istediğinize emin misiniz?" HorizontalAlignment="Left" Margin="86,34,0,0" VerticalAlignment="Top" Height="36" Width="322" FontSize="16" Grid.ColumnSpan="2"/>
-        <Button x:Name="yesButton" Content="Evet" HorizontalAlignment="Left" Margin="64,100,0,0" VerticalAlignment="Top" Width="126" Height="44" Click="yesButton_Click"/>
-        <Button x:Name="noButton" Content="Hayır" HorizontalAlignment="Left" Margin="19,100,0,0" VerticalAlignment="Top" Width="126" Height="44" Grid.Column="1" Click="noButton_Click"/>
-
+        <Label x:Name="shutDownTextLabel" Content="# numaralı alarmı susturmak istediğinize emin misiniz?" HorizontalAlignment="Left" Margin="59,27,0,0" VerticalAlignment="Top" Height="36" Width="400" FontSize="16" Grid.ColumnSpan="2"/>
+        <Button x:Name="yesButton" Content="Evet" HorizontalAlignment="Left" Margin="59,164,0,0" VerticalAlignment="Top" Width="126" Height="44" Click="yesButton_Click"/>
+        <Button x:Name="noButton" Content="Hayır" HorizontalAlignment="Left" Margin="79,164,0,0" VerticalAlignment="Top" Width="126" Height="44" Grid.Column="1" Click="noButton_Click"/>
+        <RichTextBox x:Name="commentBox" HorizontalAlignment="Left" Height="70" Margin="59,68,0,0" VerticalAlignment="Top" Width="400" Grid.ColumnSpan="2" TextOptions.TextHintingMode="Fixed" BorderThickness="3" Block.TextAlignment="Center" Background="#FFDBD3EA" FontWeight="Bold" Cursor="Pen" GotFocus="RichTextBox_GotFocus" IsReadOnly="True" OpacityMask="Black" Opacity="0.3" BorderBrush="#FF673AB7" SelectionBrush="LimeGreen">
+            <FlowDocument>
+                <Paragraph>
+                    <Run Text="Detay girmek için tıklayınız"/>
+                </Paragraph>
+            </FlowDocument>
+        </RichTextBox>
     </Grid>
 </Window>
