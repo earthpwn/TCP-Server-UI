@@ -38,9 +38,6 @@ namespace Shiny
 
     //  #4 TODO: Make alert table grid columns sortable. However whole row should be sorted, not only clicked column. TSP
 
-    //  #5 TODO: Add a comment field on shut down dialog. It will be optional where some notes could be taken for that specific alarm.
-    //  #6 TODO: Make related DB & code changes; add another table column in DB for comment, add new columns while inserting, retrieving alerts
-
     //  #8 TODO: THE COOL EFECT, when you move your cursor on console, the fadish effect is killer dude! Let's have everywhere xd TSP
 
     //  #9 TODO: Discuss windowed/fullscreen TSP
@@ -75,9 +72,14 @@ namespace Shiny
         {
             InitializeComponent();
             LogFileName = "log" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".txt";
+            AlertData.Locale = new System.Globalization.CultureInfo("tr-TR");
             AlertData.Columns.Add("ID", Type.GetType("System.String"));
-            AlertData.Columns.Add("Time", Type.GetType("System.String"));
+            AlertData.Columns.Add("Time", AlertData.Locale.DateTimeFormat.LongDatePattern.GetType());
             AlertData.Columns.Add("Location", Type.GetType("System.String"));
+            AlertData.Columns.Add("Status", Type.GetType("System.String"));
+            AlertData.Columns.Add("IP", Type.GetType("System.String"));
+            AlertData.Columns.Add("Activity", Type.GetType("System.String"));
+            AlertData.Columns.Add("Comment", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("ID", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("Time", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("Location", Type.GetType("System.String"));
@@ -97,6 +99,10 @@ namespace Shiny
                     AlertTable.Columns[0].Width = 60;
                     AlertTable.Columns[1].Width = 160;
                     AlertTable.Columns[2].Width = 120;
+                    AlertTable.Columns[3].Visibility = Visibility.Hidden;
+                    AlertTable.Columns[4].Visibility = Visibility.Hidden;
+                    AlertTable.Columns[5].Visibility = Visibility.Hidden;
+                    AlertTable.Columns[6].Width = 160;
                 }
             }
             catch (Exception ex)
@@ -349,17 +355,17 @@ namespace Shiny
             MySqlConnection conn = new MySqlConnection(connStr);
             try
             {
-                String alertTime = DateTime.Now.ToString(System.Globalization.CultureInfo.CreateSpecificCulture("tr-TR"));
+                string alertTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"); // Store DateTime in mysql default format
                 conn.Open();
                 ConsoleAddItem("DB Connection established for alert insert!");
 
                 // INSERT 
-                MySqlCommand InsertAlert = new MySqlCommand(String.Format("INSERT INTO anan.test (Time, Location, Status, IP, Activity) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}')", alertTime, "unknown", Status.ON, IP, Activity.ON_Triggered), conn);
+                MySqlCommand InsertAlert = new MySqlCommand($"INSERT INTO anan.test (Time, Location, Status, IP, Activity) VALUES ('{alertTime}', 'unknown', '{Status.ON}', '{IP}', '{Activity.ON_Triggered}')", conn);
                 InsertAlert.ExecuteNonQuery();
                 ConsoleAddItem("Insert query was run succesfully!");
 
                 // Get ID
-                MySqlCommand GetID = new MySqlCommand(String.Format("SELECT ID FROM anan.test WHERE Time = '{0}' AND Location = '{1}' AND Status = '{2}' AND IP = '{3}' AND Activity = '{4}'", alertTime, "unknown", Status.ON, IP, Activity.ON_Triggered), conn);
+                MySqlCommand GetID = new MySqlCommand($"SELECT ID FROM anan.test WHERE Time = '{alertTime}' AND Location = 'unknown' AND Status = '{Status.ON}' AND IP = '{IP}' AND Activity = '{Activity.ON_Triggered}'", conn);
                 ID = GetID.ExecuteScalar().ToString();
                 ConsoleAddItem("New alert has been added with ID: " + ID);
 
@@ -397,7 +403,7 @@ namespace Shiny
                 ConsoleAddItem("DB Connection established for alert update!");
 
                 // UPDATE 
-                MySqlCommand UpdatetAlert = new MySqlCommand(String.Format("UPDATE anan.test SET Location = '{0}', Activity = '{1}' WHERE ID = '{2}' AND IP = '{3}'", location, Activity.ON_Listening, ID, IP), conn);
+                MySqlCommand UpdatetAlert = new MySqlCommand($"UPDATE anan.test SET Location = '{location}', Activity = '{Activity.ON_Listening}' WHERE ID = '{ID}' AND IP = '{IP}'", conn);
                 UpdatetAlert.ExecuteNonQuery();
                 ConsoleAddItem("Location info has been updated.");
 
@@ -435,13 +441,13 @@ namespace Shiny
             {
                 if (withConnection) { conn.Open(); }
                 ConsoleAddItem("DB Connection established!");
-                MySqlCommand RetrieveAllAlerts = new MySqlCommand(String.Format("SELECT * FROM anan.test ORDER BY ID DESC"), conn);
+                MySqlCommand RetrieveAllAlerts = new MySqlCommand("SELECT *, DATE_FORMAT(Time,'%d.%m.%Y %H:%i:%s') FROM anan.test ORDER BY ID DESC", conn);
                 ConsoleAddItem("RetrieveAllAlerts Query is executing...");
                 using (MySqlDataReader reader = RetrieveAllAlerts.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        AlertData.Rows.Add(new object[] { reader["ID"].ToString(), reader["Time"].ToString(), reader["Location"].ToString() });
+                        AlertData.Rows.Add(new object[] { reader["ID"].ToString(), reader["DATE_FORMAT(Time,'%d.%m.%Y %H:%i:%s')"].ToString(), reader["Location"].ToString(), reader["Status"].ToString(), reader["IP"].ToString(), reader["Activity"].ToString(), reader["Comment"].ToString() });
                     }
                     ConsoleAddItem("All Alert records have been retrieved from DB.");
                 }
@@ -451,7 +457,7 @@ namespace Shiny
                 //  Active Alerts
                 this.Dispatcher.Invoke(() => { ActiveAlertTable.ItemsSource = null; });
                 ActiveAlertData.Rows.Clear();
-                MySqlCommand RetrieveActiveAlerts = new MySqlCommand(String.Format("SELECT * FROM anan.test WHERE Status = 'ON' ORDER BY ID DESC"), conn);
+                MySqlCommand RetrieveActiveAlerts = new MySqlCommand($"SELECT * FROM anan.test WHERE Status = '{Status.ON}' ORDER BY ID DESC", conn);
                 ConsoleAddItem("RetrieveActiveAlerts Query is executing...");
                 using (MySqlDataReader reader = RetrieveActiveAlerts.ExecuteReader())
                 {
@@ -513,8 +519,8 @@ namespace Shiny
                     string IP = ((DataRowView)ActiveAlertTable.CurrentCell.Item).Row.ItemArray[4].ToString();
                     //  dialog to shut down
                     AlertShutDownDialog win2 = new AlertShutDownDialog();
-                    int result = win2.ReturnResult(ID);
-                    if (result == 1)
+                    Tuple<int, string> result = win2.ReturnResult(ID);
+                    if (result.Item1 == 1)
                     {
                         string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
                         MySqlConnection conn = new MySqlConnection(connStr);
@@ -569,12 +575,12 @@ namespace Shiny
                             ConsoleAddItem("DB Connection established!");
 
                             // Mission accomplished! Update DB
-                            if (missionDone)
+                            if (true/*missionDone*/)
                             {
                                 // Mission: Shut the Alarm Down!   Part 2: Database Conversation
 
                                 // Status Update
-                                StatusUpdate(Status.OFF, ID, false, conn);
+                                StatusUpdate(Status.OFF, ID, result.Item2.Trim(new char[] { '\r', '\n'}), false, conn);
 
                                 // Activity Update
                                 ActivityUpdate(Activity.OFF_AdminShutDown, ID, false, conn);
@@ -653,17 +659,17 @@ namespace Shiny
         }
 
         //  Update status column to ON or OFF
-        private void StatusUpdate(Status nextStatus, string ID, bool withConnection, MySqlConnection conn)
+        private void StatusUpdate(Status nextStatus, string ID, string comment, bool withConnection, MySqlConnection conn)
         {
             string connStr = "server=earthpwn.ddns.net;user=anan;database=anan;port=6969;password=anan;SslMode=none"; //global
             if (withConnection) { conn = new MySqlConnection(connStr); }
             try
             {
                 if (withConnection) { conn.Open(); }
-                MySqlCommand ActivityUpdate = new MySqlCommand(String.Format("UPDATE anan.test SET Status='" + nextStatus + "' WHERE ID=" + ID), conn);
-                ConsoleAddItem("Status Update Query is executing for ID: " + ID);
-                int arows = ActivityUpdate.ExecuteNonQuery();
-                ConsoleAddItem("Alarm status has been changed to " + nextStatus + ". Updated " + arows.ToString() + " rows.");
+                MySqlCommand StatusUpdate = new MySqlCommand($"UPDATE anan.test SET Status='{nextStatus}' {(comment != null && comment != "" ? $", Comment='{comment}'" : "")}  WHERE ID={ID}", conn);
+                ConsoleAddItem($"Status Update Query is executing for ID: {ID} with Comment:{comment}");
+                int arows = StatusUpdate.ExecuteNonQuery();
+                ConsoleAddItem($"Alarm status has been changed to {nextStatus}. Updated {arows.ToString()} rows.");
             }
             catch (Exception ex)
             {

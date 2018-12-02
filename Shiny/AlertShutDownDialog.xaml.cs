@@ -20,22 +20,27 @@ namespace Shiny
     public partial class AlertShutDownDialog : Window
     {
         private int result = 0;
+        private string comment = "";
         public AlertShutDownDialog()
         {
             InitializeComponent();
-
         }
 
-        public int ReturnResult(string ID)
+        public Tuple<int, string> ReturnResult(string ID)
         {
             ShutDownDialog.Title = "Alarm #" + ID;
+            shutDownTextLabel.Content = shutDownTextLabel.Content.ToString().Replace("#", "#" + ID);
             this.ShowDialog();
-            return result;
+            return Tuple.Create(result, comment);
         }
 
         private void yesButton_Click(object sender, RoutedEventArgs e)
         {
             result = 1;
+            if (commentBox.Opacity == 100 && new TextRange(commentBox.Document.ContentStart, commentBox.Document.ContentEnd).Text != "")
+            {
+                comment = (new TextRange(commentBox.Document.ContentStart, commentBox.Document.ContentEnd).Text);
+            }
             this.Close();
         }
 
@@ -43,6 +48,14 @@ namespace Shiny
         {
             result = 0;
             this.Close();
+        }
+        
+        private void RichTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            commentBox.Opacity = 100;
+            commentBox.IsReadOnly = false;
+            commentBox.Cursor = Cursors.IBeam;
+            commentBox.Document.Blocks.Clear();
         }
     }
 }
