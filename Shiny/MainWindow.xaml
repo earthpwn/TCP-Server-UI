@@ -128,7 +128,7 @@
                 </materialDesign:ToggleButtonAssist.OnContent>
             </ToggleButton>
 
-            <DataGrid x:Name="AlertTable" ItemsSource="{Binding}" Loaded="AlertTable_Loaded" HorizontalAlignment="Left" Height="550" Margin="618,100,0,0" VerticalAlignment="Top" Width="464" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False"/>
+            <DataGrid x:Name="AlertTable" ItemsSource="{Binding}" Loaded="AlertTable_Loaded" HorizontalAlignment="Left" Height="550" Margin="618,100,0,0" VerticalAlignment="Top" Width="464" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" />
             <DataGrid x:Name="ActiveAlertTable" ItemsSource="{Binding}" HorizontalAlignment="Left" Height="550" Margin="1152,100,0,0" VerticalAlignment="Top" Width="380" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" IsReadOnly="True" CanUserSortColumns="False" MouseDoubleClick="ActiveAlertTable_MouseDoubleClick" MouseMove="ActiveAlertTable_MouseMove" Loaded="ActiveAlertTable_Loaded">
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
