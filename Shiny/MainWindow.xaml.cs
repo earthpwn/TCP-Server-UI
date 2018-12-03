@@ -73,7 +73,7 @@ namespace Shiny
             InitializeComponent();
             LogFileName = "log" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".txt";
             AlertData.Locale = new System.Globalization.CultureInfo("tr-TR");
-            AlertData.Columns.Add("ID", Type.GetType("System.String"));
+            AlertData.Columns.Add("ID", Type.GetType("System.Int32"));
             AlertData.Columns.Add("Time", AlertData.Locale.DateTimeFormat.LongDatePattern.GetType());
             AlertData.Columns.Add("Location", Type.GetType("System.String"));
             AlertData.Columns.Add("Status", Type.GetType("System.String"));
@@ -447,7 +447,7 @@ namespace Shiny
                 {
                     while (reader.Read())
                     {
-                        AlertData.Rows.Add(new object[] { reader["ID"].ToString(), reader["DATE_FORMAT(Time,'%d.%m.%Y %H:%i:%s')"].ToString(), reader["Location"].ToString(), reader["Status"].ToString(), reader["IP"].ToString(), reader["Activity"].ToString(), reader["Comment"].ToString() });
+                        AlertData.Rows.Add(new object[] { Int32.Parse(reader["ID"].ToString()), reader["DATE_FORMAT(Time,'%d.%m.%Y %H:%i:%s')"].ToString(), reader["Location"].ToString(), reader["Status"].ToString(), reader["IP"].ToString(), reader["Activity"].ToString(), reader["Comment"].ToString() });
                     }
                     ConsoleAddItem("All Alert records have been retrieved from DB.");
                 }
@@ -463,7 +463,7 @@ namespace Shiny
                 {
                     while (reader.Read())
                     {
-                        ActiveAlertData.Rows.Add(new object[] { reader["ID"].ToString(), reader["Time"].ToString(), reader["Location"].ToString(), reader["Status"].ToString(), reader["IP"].ToString(), reader["Activity"].ToString() });
+                        ActiveAlertData.Rows.Add(new object[] { Int32.Parse(reader["ID"].ToString()), reader["Time"].ToString(), reader["Location"].ToString(), reader["Status"].ToString(), reader["IP"].ToString(), reader["Activity"].ToString() });
                     }
                     ConsoleAddItem("Active Alert records have been retrieved from DB.");
                 }
@@ -548,7 +548,7 @@ namespace Shiny
                                         int bytesRead = nwStream.Read(bytesToRead, 0, client.ReceiveBufferSize);
                                         ConsoleAddItem("Received : " + Encoding.ASCII.GetString(bytesToRead, 0, bytesRead));
                                         // Verify server understood the command
-                                        if (Encoding.ASCII.GetString(bytesToRead, 0, bytesRead) == "k")
+                                        if (Encoding.ASCII.GetString(bytesToRead, 0, bytesRead) == textToSend)
                                         {
                                             ConsoleAddItem("Initiating hibernation sequence" /* Tospaa, 10.11.2018 */);
                                             missionDone = true;
@@ -575,7 +575,7 @@ namespace Shiny
                             ConsoleAddItem("DB Connection established!");
 
                             // Mission accomplished! Update DB
-                            if (true/*missionDone*/)
+                            if (missionDone)
                             {
                                 // Mission: Shut the Alarm Down!   Part 2: Database Conversation
 
@@ -590,7 +590,7 @@ namespace Shiny
                             {
                                 //MessageBox.Show("Alarm deaktif hale getirelemedi.")
                                 ConsoleAddItem($"ID: {ID} IP: {IP} - Alarm deaktif hale getirelemedi.");
-                                SbarMessage($"ID: {ID} IP: {IP} - Alarm deaktif hale getirelemedi.");
+                                SbarMessage($"#{ID} numaralı alarm deaktif hale getirelemedi.");
                             }
 
                             // Refresh Alerts
