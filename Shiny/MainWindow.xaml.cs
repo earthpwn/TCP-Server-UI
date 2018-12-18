@@ -25,6 +25,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using MaterialDesignThemes.Wpf;
 using System.Runtime.CompilerServices;
+using System.Configuration;
 
 namespace Shiny
 {
@@ -87,8 +88,80 @@ namespace Shiny
             ActiveAlertData.Columns.Add("IP", Type.GetType("System.String"));
             ActiveAlertData.Columns.Add("Activity", Type.GetType("System.String"));
             BringTop.IsChecked = Properties.Settings.Default.BringWindowToTop;
+            DecryptConnectionString();
             RetrieveAlerts(true, null);
         }
+
+
+        private void EncryptConnectionString ()
+        {
+            try
+            {
+                Configuration roamingConfig = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap();
+                configFileMap.ExeConfigFilename = roamingConfig.FilePath;
+
+                // Get the mapped configuration file.
+                Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
+                ConfigurationSection connStrings = config.GetSection("connectionStrings");
+
+                if (!connStrings.SectionInformation.IsProtected)
+                {
+                    connStrings.SectionInformation.ProtectSection("DataProtectionConfigurationProvider");
+                    ConsoleAddItem("Encrption is done");
+                }
+                //save
+                connStrings.SectionInformation.ForceSave = true;
+                config.Save(ConfigurationSaveMode.Modified);
+                ConsoleAddItem("Encrption process is over");
+            }
+            catch (Exception ex)
+            {
+                ConsoleAddItem("error on encrypt: " + ex.Message);
+            }
+
+        }
+
+        private void DecryptConnectionString()
+        {
+            try
+            {
+                Configuration config = ConfigurationManager.OpenExeConfiguration("Shiny.exe");
+                ConnectionStringsSection section = config.GetSection("connectionStrings") as ConnectionStringsSection;
+                if (section.SectionInformation.IsProtected)
+                {
+                    //it is so we need to remove the encryption
+                    section.SectionInformation.UnprotectSection();
+                }
+
+                // Get the collection of connection strings.
+                ConnectionStringSettingsCollection settings =
+                    ConfigurationManager.ConnectionStrings;
+
+                // Walk through the collection and return the first 
+                // connection string matching the providerName.
+                if (settings != null)
+                {
+                    foreach (ConnectionStringSettings cs in settings)
+                    {
+                        if (cs.Name.Equals("SqlServices"))
+                        {
+                            LogWorker("String found");
+                            LogWorker(cs.ConnectionString);
+                            ConsoleAddItem("String found");
+                            ConsoleAddItem(cs.ConnectionString);
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                LogWorker("error while decrypting: " + ex.Message);
+                ConsoleAddItem("error while decrypting: " + ex.Message);
+                
+            }
+        }
+
 
         private void AlertTable_Loaded(object sender, RoutedEventArgs e)
         {
